@@ -20,7 +20,33 @@ pub struct Piece {
     owner: Players,
 }
 
-type Position = (i8, i8); // rand, coloana : row, col
+mod mod_position {
+    #[derive(Clone, Copy)]
+    pub struct Position(i8, i8); // rand, coloana : row, col
+    impl Position {
+        pub fn new(row: i8, col: i8) -> Self {
+            Position(row, col)
+        }
+
+        pub fn row(&self) -> i8 {
+            self.0
+        }
+
+        pub fn col(&self) -> i8 {
+            self.1
+        }
+    }
+
+    impl std::ops::Add for Position {
+        type Output = Self;
+
+        fn add(self, other: Self) -> Self {
+            Self(self.0 + other.0, self.1 + other.1)
+        }
+    }
+}
+
+use mod_position::Position;
 
 #[derive(Clone, Copy)]
 pub enum Move {
@@ -83,13 +109,13 @@ impl ChessGame {
 
     pub fn get_position(&self, position: Position) -> Option<&Option<Piece>> {
         self.board
-            .get(position.0 as usize)
-            .and_then(|row| row.get(position.1 as usize))
+            .get(position.row() as usize)
+            .and_then(|row| row.get(position.col() as usize))
     }
 
     fn set_position(&mut self, position: Position, new_place: Option<Piece>) {
-        self.board.get_mut(position.0 as usize).and_then(|row| {
-            row.get_mut(position.1 as usize)
+        self.board.get_mut(position.row() as usize).and_then(|row| {
+            row.get_mut(position.col() as usize)
                 .map(|place| *place = new_place)
         });
     }
@@ -135,7 +161,7 @@ impl ChessGame {
             .flat_map(|(r, v)| {
                 v.iter()
                     .enumerate()
-                    .map(move |(c, v)| ((r as i8, c as i8), v))
+                    .map(move |(c, v)| (Position::new(r as i8, c as i8), v))
             })
             .filter_map(|(position, place)| {
                 place
@@ -156,18 +182,21 @@ macro_rules! find_moves_loops {
         {
             $(
             for delta in $x {
-                let end = ($pos.0 + delta.0, $pos.1 + delta.1);
+                let end = $pos + delta;
                 if let Some(place) = $game.get_position(end) {
                     if place.is_some_and(|piece| piece.owner == $game.current_player) {
                         break;
-                    } else if place.is_some() {
+                    } else {
                         $moves.push(Move::Normal {
                             piece: *$piece_type,
                             start: $pos,
                             end,
                             captured_piece: *place,
                         });
-                        break;
+                        if place.is_some()
+                        {
+                            break;
+                        }
                     }
                 } else {
                     break;
@@ -188,59 +217,50 @@ impl Piece {
                     Players::Black => 6,
                 };
 
-                let first_row_delta = match self.owner {
-                    Players::White => 1,
-                    Players::Black => -1,
+                let normal_delta = match self.owner {
+                    Players::White => Position::new(1, 0),
+                    Players::Black => Position::new(-1, 0),
                 };
 
-                if pos.0 == first_row
-                    && game
-                        .get_position((pos.0 + first_row_delta, pos.1))
-                        .unwrap()
-                        .is_none()
-                    && game
-                        .get_position((pos.0 + 2 * first_row_delta, pos.1))
-                        .unwrap()
-                        .is_none()
+                let first_row_delta = match self.owner {
+                    Players::White => Position::new(2, 0),
+                    Players::Black => Position::new(-2, 0),
+                };
+
+                if pos.row() == first_row
+                    && game.get_position(pos + normal_delta).unwrap().is_none()
+                    && game.get_position(pos + first_row_delta).unwrap().is_none()
                 {
                     moves.push(Move::Normal {
                         piece: *self,
                         start: pos,
-                        end: (pos.0 + 2 * first_row_delta, pos.1),
+                        end: pos + first_row_delta,
                         captured_piece: None,
                     });
                 }
-
-                let normal_delta = match self.owner {
-                    Players::White => (1, 0),
-                    Players::Black => (-1, 0),
+                let side_deltas = match self.owner {
+                    Players::White => [Position::new(1, 1), Position::new(1, -1)],
+                    Players::Black => [Position::new(-1, 1), Position::new(-1, -1)],
                 };
 
-                let side_moves = match self.owner {
-                    Players::White => [(1, 1), (1, -1)],
-                    Players::Black => [(-1, 1), (-1, -1)],
-                };
-
-                let normal_new_pos = (pos.0 + normal_delta.0, pos.1 + normal_delta.1);
                 if game
-                    .get_position(normal_new_pos)
+                    .get_position(pos + normal_delta)
                     .is_some_and(|place| place.is_none())
                 {
                     moves.push(Move::Normal {
                         piece: *self,
                         start: pos,
-                        end: normal_new_pos,
+                        end: pos + normal_delta,
                         captured_piece: None,
                     });
                 }
-                for delta in side_moves {
-                    let side_new_pos = (pos.0 + delta.0, pos.1 + delta.1);
-                    if let Some(place) = game.get_position(normal_new_pos) {
+                for delta in side_deltas {
+                    if let Some(place) = game.get_position(pos + delta) {
                         if place.is_some_and(|piece| piece.owner != self.owner) {
                             moves.push(Move::Normal {
                                 piece: *self,
                                 start: pos,
-                                end: side_new_pos,
+                                end: pos + delta,
                                 captured_piece: *place,
                             });
                         }
@@ -290,7 +310,7 @@ impl Piece {
             //     }
             // }
             PieceTypes::Knight => {
-                for (a, b) in [
+                for delta in [
                     (1, 2),
                     (2, 1),
                     (-1, -2),
@@ -299,15 +319,18 @@ impl Piece {
                     (-2, -1),
                     (-1, 2),
                     (2, -1),
-                ] {
-                    if let Some(place) = game.get_position((pos.0 + a, pos.1 + b)) {
+                ]
+                .iter()
+                .map(|(row, col)| Position::new(*row, *col))
+                {
+                    if let Some(place) = game.get_position(pos + delta) {
                         if place.is_none()
                             || place.is_some_and(|piece| piece.owner != game.current_player)
                         {
                             moves.push(Move::Normal {
                                 piece: *self,
                                 start: pos,
-                                end: (pos.0 + a, pos.1 + b),
+                                end: pos + delta,
                                 captured_piece: *place,
                             });
                         }
@@ -320,10 +343,10 @@ impl Piece {
                     pos,
                     game,
                     self,
-                    (1..).map(|x| (0, x)),
-                    (1..).map(|x| (0, -x)),
-                    (1..).map(|x| (x, 0)),
-                    (1..).map(|x| (-x, 0))
+                    (1..).map(|x| Position::new(0, x)),
+                    (1..).map(|x| Position::new(0, -x)),
+                    (1..).map(|x| Position::new(x, 0)),
+                    (1..).map(|x| Position::new(-x, 0))
                 ];
             }
 
@@ -333,10 +356,10 @@ impl Piece {
                     pos,
                     game,
                     self,
-                    (1..).map(|x| (x, x)),
-                    (1..).map(|x| (-x, -x)),
-                    (1..).map(|x| (x, -x)),
-                    (1..).map(|x| (-x, x))
+                    (1..).map(|x| Position::new(x, x)),
+                    (1..).map(|x| Position::new(-x, -x)),
+                    (1..).map(|x| Position::new(x, -x)),
+                    (1..).map(|x| Position::new(-x, x))
                 ];
             }
 
@@ -346,14 +369,14 @@ impl Piece {
                     pos,
                     game,
                     self,
-                    (1..).map(|x| (0, x)),
-                    (1..).map(|x| (0, -x)),
-                    (1..).map(|x| (x, 0)),
-                    (1..).map(|x| (-x, 0)),
-                    (1..).map(|x| (x, x)),
-                    (1..).map(|x| (-x, -x)),
-                    (1..).map(|x| (x, -x)),
-                    (1..).map(|x| (-x, x))
+                    (1..).map(|x| Position::new(0, x)),
+                    (1..).map(|x| Position::new(0, -x)),
+                    (1..).map(|x| Position::new(x, 0)),
+                    (1..).map(|x| Position::new(-x, 0)),
+                    (1..).map(|x| Position::new(x, x)),
+                    (1..).map(|x| Position::new(-x, -x)),
+                    (1..).map(|x| Position::new(x, -x)),
+                    (1..).map(|x| Position::new(-x, x))
                 ];
             }
         }
@@ -373,7 +396,12 @@ impl std::fmt::Debug for Move {
             } => write!(
                 f,
                 "{:?} from {} {} to {} {}, captured {:?} ",
-                piece, start.0, start.1, end.0, end.1, captured_piece
+                piece,
+                start.row(),
+                start.col(),
+                end.row(),
+                end.col(),
+                captured_piece
             ),
             _ => write!(f, "not supported"),
         }
