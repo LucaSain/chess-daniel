@@ -1,52 +1,8 @@
-#[derive(Clone, Copy, Debug)]
-enum PieceTypes {
-    Pawn,
-    Rook,
-    Knight,
-    Bishop,
-    Queen,
-    King,
-}
-
 #[derive(PartialEq, Eq, Clone, Copy, Debug)]
-enum Players {
+pub enum Players {
     White,
     Black,
 }
-
-#[derive(Clone, Copy, Debug)]
-pub struct Piece {
-    piece_type: PieceTypes,
-    owner: Players,
-}
-
-mod mod_position {
-    #[derive(Clone, Copy)]
-    pub struct Position(i8, i8); // rand, coloana : row, col
-    impl Position {
-        pub fn new(row: i8, col: i8) -> Self {
-            Position(row, col)
-        }
-
-        pub fn row(&self) -> i8 {
-            self.0
-        }
-
-        pub fn col(&self) -> i8 {
-            self.1
-        }
-    }
-
-    impl std::ops::Add for Position {
-        type Output = Self;
-
-        fn add(self, other: Self) -> Self {
-            Self(self.0 + other.0, self.1 + other.1)
-        }
-    }
-}
-
-use mod_position::Position;
 
 #[derive(Clone, Copy)]
 pub enum Move {
@@ -61,17 +17,34 @@ pub enum Move {
     Promovation,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ChessGame {
     board: [[Option<Piece>; 8]; 8],
-    pub move_stack: Vec<Move>,
+    pub targeted_by_white: [[i8; 8]; 8],
+    pub targeted_by_black: [[i8; 8]; 8],
+    pub move_stack: Vec<Move>, // debug
     current_player: Players,
+}
+
+mod mod_piece;
+use mod_piece::*;
+
+mod mod_position;
+use mod_position::*;
+
+impl Players {
+    fn the_other(&self) -> Self {
+        match self {
+            Self::White => Self::Black,
+            Self::Black => Self::White,
+        }
+    }
 }
 
 impl ChessGame {
     pub fn new() -> Self {
         #[rustfmt::skip]
-        let game = ChessGame {
+        let mut game = ChessGame {
             board: [
                 [
                     Some(Piece {piece_type: PieceTypes::Rook, owner: Players::White}),
@@ -100,9 +73,29 @@ impl ChessGame {
                     Some(Piece {piece_type: PieceTypes::Rook, owner: Players::Black}),
                 ],
             ],
+            targeted_by_white: [[0; 8]; 8],
+            targeted_by_black: [[0; 8]; 8],
             move_stack: Vec::with_capacity(100),
             current_player: Players::White, 
         };
+
+        for (position, place) in game.clone().board.iter().enumerate().flat_map(|(r, v)| {
+            v.iter()
+                .enumerate()
+                .map(move |(c, v)| (Position::new(r as i8, c as i8), v))
+        }) {
+            if let Some(piece) = place {
+                game.real_push(
+                    Move::Normal {
+                        piece: *piece,
+                        start: position,
+                        end: position,
+                        captured_piece: None,
+                    },
+                    true,
+                )
+            }
+        }
 
         game
     }
@@ -120,30 +113,101 @@ impl ChessGame {
         });
     }
 
+    pub fn get_targeted(&self, position: Position, player: Players) -> Option<i8> {
+        match player {
+            Players::White => self.targeted_by_white,
+            Players::Black => self.targeted_by_black,
+        }
+        .get(position.row() as usize)
+        .and_then(|row| row.get(position.col() as usize))
+        .map(|num| *num)
+    }
+
+    pub fn inc_targeted(&mut self, position: Position, player: Players) {
+        match player {
+            Players::White => &mut self.targeted_by_white,
+            Players::Black => &mut self.targeted_by_black,
+        }
+        .get_mut(position.row() as usize)
+        .and_then(|row| row.get_mut(position.col() as usize).map(|num| *num += 1));
+    }
+
+    pub fn dec_targeted(&mut self, position: Position, player: Players) {
+        match player {
+            Players::White => &mut self.targeted_by_white,
+            Players::Black => &mut self.targeted_by_black,
+        }
+        .get_mut(position.row() as usize)
+        .and_then(|row| row.get_mut(position.col() as usize).map(|num| *num -= 1));
+    }
     pub fn push(&mut self, _move: Move) {
-        self.move_stack.push(_move);
+        self.real_push(_move, false);
+    }
+
+    fn real_push(&mut self, _move: Move, is_new_game: bool) {
+        if !is_new_game {
+            match _move {
+                #[rustfmt::skip]
+                Move::Normal { piece, start, .. } => {
+                piece.get_moves_pseudo(self, start).iter().for_each(|_move| {
+                    match _move {
+                        Move::Normal { piece, start, end, .. } => {
+                            if piece.piece_type != PieceTypes::Pawn || (*end - *start).col() != 0 {
+                                self.dec_targeted(*end, piece.owner);
+                            }
+                        }
+                        // TODO others
+                        _ => panic!(),
+                    }
+                })
+            }
+                _ => (),
+            }
+            self.move_stack.push(_move);
+        }
         match _move {
-            Move::Normal {
-                piece, start, end, ..
-            } => {
+            #[rustfmt::skip]
+            Move::Normal { piece, start, end, .. } => {
                 self.set_position(start, None);
                 self.set_position(end, Some(piece));
+                
+                // after a normal move we can't exepect the castling since the king moved
+                piece.get_moves_pseudo(self, end).iter().for_each(|_move| {
+                    match _move {
+                        Move::Normal { piece, start, end, .. } => {
+                            if piece.piece_type != PieceTypes::Pawn || (*end - *start).col() != 0 {
+                                self.inc_targeted(*end, piece.owner);
+                            }
+                        }
+                        // TODO others
+                        _ => panic!(),
+                    }
+                })
             }
             // TODO: other moves
             _ => (),
         };
+        self.current_player = self.current_player.the_other();
     }
 
     pub fn pop(&mut self) -> Move {
         let _move = self.move_stack.pop().expect("Tried to pop a new game");
 
         match _move {
-            Move::Normal {
-                piece,
-                start,
-                end,
-                captured_piece,
-            } => {
+            #[rustfmt::skip]
+            Move::Normal { piece, start, end, captured_piece }=> {             
+                piece.get_moves_pseudo(self, end).iter().for_each(|_move| {
+                    match _move {
+                        Move::Normal { piece, start, end, .. } => {
+                            if piece.piece_type != PieceTypes::Pawn || (*end - *start).col() != 0 {
+                                self.dec_targeted(*end, piece.owner);
+                            }
+                        }
+                        // TODO others
+                        _ => panic!(),
+                    }
+                });
+
                 self.set_position(start, Some(piece));
                 self.set_position(end, captured_piece);
             }
@@ -151,6 +215,25 @@ impl ChessGame {
             _ => (),
         };
 
+        match _move {
+            #[rustfmt::skip]
+            Move::Normal { piece, start, .. } => {
+                piece.get_moves_pseudo(self, start).iter().for_each(|_move| {
+                    match _move {
+                        Move::Normal { piece, start, end, .. } => {
+                            if piece.piece_type != PieceTypes::Pawn || (*end - *start).col() != 0 {
+                                self.inc_targeted(*end, piece.owner);
+                            }
+                        }
+                        // TODO others
+                        _ => panic!(),
+                    }
+                })
+            }
+            _ => (),
+        }
+
+        self.current_player = self.current_player.the_other();
         _move
     }
 
@@ -174,214 +257,6 @@ impl ChessGame {
                     .unwrap_or_default()
             })
             .collect()
-    }
-}
-
-macro_rules! find_moves_loops {
-    ( $moves:ident, $pos:ident, $game:ident, $piece_type:ident, $( $x:expr ),* ) => {
-        {
-            $(
-            for delta in $x {
-                let end = $pos + delta;
-                if let Some(place) = $game.get_position(end) {
-                    if place.is_some_and(|piece| piece.owner == $game.current_player) {
-                        break;
-                    } else {
-                        $moves.push(Move::Normal {
-                            piece: *$piece_type,
-                            start: $pos,
-                            end,
-                            captured_piece: *place,
-                        });
-                        if place.is_some()
-                        {
-                            break;
-                        }
-                    }
-                } else {
-                    break;
-                }
-            }
-            )*
-        }
-    };
-}
-
-impl Piece {
-    fn get_moves(&self, game: &ChessGame, pos: Position) -> Vec<Move> {
-        let mut moves = Vec::new();
-        match self.piece_type {
-            PieceTypes::Pawn => {
-                let first_row = match self.owner {
-                    Players::White => 1,
-                    Players::Black => 6,
-                };
-
-                let normal_delta = match self.owner {
-                    Players::White => Position::new(1, 0),
-                    Players::Black => Position::new(-1, 0),
-                };
-
-                let first_row_delta = match self.owner {
-                    Players::White => Position::new(2, 0),
-                    Players::Black => Position::new(-2, 0),
-                };
-
-                if pos.row() == first_row
-                    && game.get_position(pos + normal_delta).unwrap().is_none()
-                    && game.get_position(pos + first_row_delta).unwrap().is_none()
-                {
-                    moves.push(Move::Normal {
-                        piece: *self,
-                        start: pos,
-                        end: pos + first_row_delta,
-                        captured_piece: None,
-                    });
-                }
-                let side_deltas = match self.owner {
-                    Players::White => [Position::new(1, 1), Position::new(1, -1)],
-                    Players::Black => [Position::new(-1, 1), Position::new(-1, -1)],
-                };
-
-                if game
-                    .get_position(pos + normal_delta)
-                    .is_some_and(|place| place.is_none())
-                {
-                    moves.push(Move::Normal {
-                        piece: *self,
-                        start: pos,
-                        end: pos + normal_delta,
-                        captured_piece: None,
-                    });
-                }
-                for delta in side_deltas {
-                    if let Some(place) = game.get_position(pos + delta) {
-                        if place.is_some_and(|piece| piece.owner != self.owner) {
-                            moves.push(Move::Normal {
-                                piece: *self,
-                                start: pos,
-                                end: pos + delta,
-                                captured_piece: *place,
-                            });
-                        }
-                    }
-                }
-                // TODO: En Passant
-
-                // TODO: Promotion
-            }
-            PieceTypes::King => {}
-            //     for (a, b) in [
-            //         (0, 1),
-            //         (0, -1),
-            //         (1, 0),
-            //         (-1, 0),
-            //         (1, 1),
-            //         (1, -1),
-            //         (-1, 1),
-            //         (-1, -1),
-            //     ] {
-            //         let new_pos = (pos.0 + a, pos.1 + b);
-            //         game.push(Move::Normal {
-            //             piece: self,
-            //             start: pos,
-            //             end: new_pos,
-            //             is_capture: game.get_position(new_pos).is_some(),
-            //         });
-            //         game.pop();
-            //         if let Some(place) = game.get_position(new_pos) {
-            //             if game.get_moves().iter().any(|mv| match mv {
-            //                 Move::Normal { end, .. } => *end == new_pos,
-            //                 _ => false,
-            //             }) {
-            //                 moves.push(Move::Normal {
-            //                     piece: *self,
-            //                     start: pos,
-            //                     end: (pos.0 + a, pos.1 + b),
-            //                     is_capture: place.is_some(),
-            //                 });
-            //                 if place.is_some_and(|piece| piece.owner != game.current_player) {
-            //                     break;
-            //                 }
-            //             }
-            //         } else {
-            //             break;
-            //         }
-            //     }
-            // }
-            PieceTypes::Knight => {
-                for delta in [
-                    (1, 2),
-                    (2, 1),
-                    (-1, -2),
-                    (-2, -1),
-                    (1, -2),
-                    (-2, -1),
-                    (-1, 2),
-                    (2, -1),
-                ]
-                .iter()
-                .map(|(row, col)| Position::new(*row, *col))
-                {
-                    if let Some(place) = game.get_position(pos + delta) {
-                        if place.is_none()
-                            || place.is_some_and(|piece| piece.owner != game.current_player)
-                        {
-                            moves.push(Move::Normal {
-                                piece: *self,
-                                start: pos,
-                                end: pos + delta,
-                                captured_piece: *place,
-                            });
-                        }
-                    }
-                }
-            }
-            PieceTypes::Rook => {
-                find_moves_loops![
-                    moves,
-                    pos,
-                    game,
-                    self,
-                    (1..).map(|x| Position::new(0, x)),
-                    (1..).map(|x| Position::new(0, -x)),
-                    (1..).map(|x| Position::new(x, 0)),
-                    (1..).map(|x| Position::new(-x, 0))
-                ];
-            }
-
-            PieceTypes::Bishop => {
-                find_moves_loops![
-                    moves,
-                    pos,
-                    game,
-                    self,
-                    (1..).map(|x| Position::new(x, x)),
-                    (1..).map(|x| Position::new(-x, -x)),
-                    (1..).map(|x| Position::new(x, -x)),
-                    (1..).map(|x| Position::new(-x, x))
-                ];
-            }
-
-            PieceTypes::Queen => {
-                find_moves_loops![
-                    moves,
-                    pos,
-                    game,
-                    self,
-                    (1..).map(|x| Position::new(0, x)),
-                    (1..).map(|x| Position::new(0, -x)),
-                    (1..).map(|x| Position::new(x, 0)),
-                    (1..).map(|x| Position::new(-x, 0)),
-                    (1..).map(|x| Position::new(x, x)),
-                    (1..).map(|x| Position::new(-x, -x)),
-                    (1..).map(|x| Position::new(x, -x)),
-                    (1..).map(|x| Position::new(-x, x))
-                ];
-            }
-        }
-
-        moves
     }
 }
 
