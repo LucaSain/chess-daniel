@@ -395,35 +395,19 @@ impl std::fmt::Debug for Move {
                 captured_piece,
             } => write!(
                 f,
-                "{:?} from {} {} to {} {}, captured {:?} ",
-                piece,
+                "{:?} {:?} from {} {} to {} {}, captured {:?} ",
+                piece.owner,
+                piece.piece_type,
                 start.row(),
                 start.col(),
                 end.row(),
                 end.col(),
-                captured_piece
+                captured_piece.map(|piece| format!("{:?} {:?}", piece.owner, piece.piece_type))
             ),
             _ => write!(f, "not supported"),
         }
     }
 }
-// impl Piece {
-//     fn is_white(&self) -> bool {
-//         match self {
-//             Piece::WhitePawn => true,
-//             Piece::WhiteRook => true,
-//             Piece::WhiteKnight => true,
-//             Piece::WhiteBishop => true,
-//             Piece::WhiteQueen => true,
-//             Piece::WhiteKing => true,
-//             _ => false,
-//         }
-//     }
-
-//     fn is_black(&self) -> bool {
-//         !self.is_white()
-//     }
-// }
 
 // #[cfg(test)]
 // mod tests {
