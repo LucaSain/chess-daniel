@@ -50,7 +50,7 @@ macro_rules! find_moves_loops {
 }
 
 impl Piece {
-    pub fn get_moves(&self, game: &ChessGame, pos: Position) -> ArrayVec<Move, 32> {
+    pub fn get_moves(&self, game: &ChessGame, pos: Position) -> ArrayVec<Move, 27> {
         let mut moves = ArrayVec::new();
         match self.piece_type {
             PieceTypes::Pawn => {

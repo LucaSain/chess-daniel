@@ -124,7 +124,7 @@ impl ChessGame {
         _move
     }
 
-    pub fn get_moves(&self) -> ArrayVec<Move, 512> {
+    pub fn get_moves(&self) -> ArrayVec<Move, 64> {
         let piece_moves = self
             .board
             .iter()
@@ -145,7 +145,7 @@ impl ChessGame {
                     .unwrap_or_default()
             });
 
-        let mut moves = ArrayVec::<Move, 512>::new();
+        let mut moves = ArrayVec::new();
         for list in piece_moves {
             for item in list.iter() {
                 unsafe {
