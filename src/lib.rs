@@ -17,7 +17,7 @@ pub enum Move {
     Promovation,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct ChessGame {
     board: [[Option<Piece>; 8]; 8],
     pub targeted_by_white: [[i8; 8]; 8],
@@ -27,6 +27,7 @@ pub struct ChessGame {
 }
 
 mod mod_piece;
+use arrayvec::ArrayVec;
 use mod_piece::*;
 
 mod mod_position;
@@ -113,56 +114,68 @@ impl ChessGame {
         });
     }
 
-    pub fn get_targeted(&self, position: Position, player: Players) -> Option<i8> {
-        match player {
-            Players::White => self.targeted_by_white,
-            Players::Black => self.targeted_by_black,
-        }
-        .get(position.row() as usize)
-        .and_then(|row| row.get(position.col() as usize))
-        .map(|num| *num)
-    }
+    // pub fn get_targeted(&self, position: Position, player: Players) -> Option<i8> {
+    //     match player {
+    //         Players::White => self.targeted_by_white,
+    //         Players::Black => self.targeted_by_black,
+    //     }
+    //     .get(position.row() as usize)
+    //     .and_then(|row| row.get(position.col() as usize))
+    //     .map(|num| *num)
+    // }
 
-    pub fn inc_targeted(&mut self, position: Position, player: Players) {
-        match player {
-            Players::White => &mut self.targeted_by_white,
-            Players::Black => &mut self.targeted_by_black,
-        }
-        .get_mut(position.row() as usize)
-        .and_then(|row| row.get_mut(position.col() as usize).map(|num| *num += 1));
-    }
+    // pub fn inc_targeted(&mut self, position: Position, player: Players) {
+    //     match player {
+    //         Players::White => &mut self.targeted_by_white,
+    //         Players::Black => &mut self.targeted_by_black,
+    //     }
+    //     .get_mut(position.row() as usize)
+    //     .and_then(|row| {
+    //         row.get_mut(position.col() as usize).map(|num| {
+    //             *num += 1;
+    //         })
+    //     });
+    // }
 
-    pub fn dec_targeted(&mut self, position: Position, player: Players) {
-        match player {
-            Players::White => &mut self.targeted_by_white,
-            Players::Black => &mut self.targeted_by_black,
-        }
-        .get_mut(position.row() as usize)
-        .and_then(|row| row.get_mut(position.col() as usize).map(|num| *num -= 1));
-    }
+    // pub fn dec_targeted(&mut self, position: Position, player: Players) {
+    //     match player {
+    //         Players::White => &mut self.targeted_by_white,
+    //         Players::Black => &mut self.targeted_by_black,
+    //     }
+    //     .get_mut(position.row() as usize)
+    //     .and_then(|row| {
+    //         row.get_mut(position.col() as usize).map(|num| {
+    //             *num -= 1;
+    //         })
+    //     });
+    // }
+
     pub fn push(&mut self, _move: Move) {
         self.real_push(_move, false);
+        // std::process::Command::new("clear").status().unwrap();
+        // println!("{:#?}", self.clone());
+        // println!("{:#?}", _move.clone());
     }
 
     fn real_push(&mut self, _move: Move, is_new_game: bool) {
+        // if !is_new_game {
+        //     match _move {
+        //         #[rustfmt::skip]
+        //         Move::Normal { piece, start, .. } => {
+        //             piece.get_moves_protect(self, start).iter().for_each(|_move| {
+        //                 match _move {
+        //                     Move::Normal { piece, end, .. } => {
+        //                         self.dec_targeted(*end, piece.owner);
+        //                     }
+        //                     // TODO others
+        //                     _ => panic!(),
+        //                 }
+        //             })
+        //         }
+        //         _ => (),
+        //     }
+        // }
         if !is_new_game {
-            match _move {
-                #[rustfmt::skip]
-                Move::Normal { piece, start, .. } => {
-                piece.get_moves_pseudo(self, start).iter().for_each(|_move| {
-                    match _move {
-                        Move::Normal { piece, start, end, .. } => {
-                            if piece.piece_type != PieceTypes::Pawn || (*end - *start).col() != 0 {
-                                self.dec_targeted(*end, piece.owner);
-                            }
-                        }
-                        // TODO others
-                        _ => panic!(),
-                    }
-                })
-            }
-                _ => (),
-            }
             self.move_stack.push(_move);
         }
         match _move {
@@ -172,17 +185,15 @@ impl ChessGame {
                 self.set_position(end, Some(piece));
                 
                 // after a normal move we can't exepect the castling since the king moved
-                piece.get_moves_pseudo(self, end).iter().for_each(|_move| {
-                    match _move {
-                        Move::Normal { piece, start, end, .. } => {
-                            if piece.piece_type != PieceTypes::Pawn || (*end - *start).col() != 0 {
-                                self.inc_targeted(*end, piece.owner);
-                            }
-                        }
-                        // TODO others
-                        _ => panic!(),
-                    }
-                })
+                // piece.get_moves_protect(self, end).iter().for_each(|_move| {
+                //     match _move {
+                //         Move::Normal { piece, end, .. } => {
+                //             self.inc_targeted(*end, piece.owner);
+                //         }
+                //         // TODO others
+                //         _ => panic!(),
+                //     }
+                // })
             }
             // TODO: other moves
             _ => (),
@@ -196,17 +207,15 @@ impl ChessGame {
         match _move {
             #[rustfmt::skip]
             Move::Normal { piece, start, end, captured_piece }=> {             
-                piece.get_moves_pseudo(self, end).iter().for_each(|_move| {
-                    match _move {
-                        Move::Normal { piece, start, end, .. } => {
-                            if piece.piece_type != PieceTypes::Pawn || (*end - *start).col() != 0 {
-                                self.dec_targeted(*end, piece.owner);
-                            }
-                        }
-                        // TODO others
-                        _ => panic!(),
-                    }
-                });
+                // piece.get_moves_protect(self, end).iter().for_each(|_move| {
+                //     match _move {
+                //         Move::Normal { piece, end, .. } => {
+                //             self.dec_targeted(*end, piece.owner);
+                //         }
+                //         // TODO others
+                //         _ => panic!(),
+                //     }
+                // });
 
                 self.set_position(start, Some(piece));
                 self.set_position(end, captured_piece);
@@ -215,30 +224,29 @@ impl ChessGame {
             _ => (),
         };
 
-        match _move {
-            #[rustfmt::skip]
-            Move::Normal { piece, start, .. } => {
-                piece.get_moves_pseudo(self, start).iter().for_each(|_move| {
-                    match _move {
-                        Move::Normal { piece, start, end, .. } => {
-                            if piece.piece_type != PieceTypes::Pawn || (*end - *start).col() != 0 {
-                                self.inc_targeted(*end, piece.owner);
-                            }
-                        }
-                        // TODO others
-                        _ => panic!(),
-                    }
-                })
-            }
-            _ => (),
-        }
+        // match _move {
+        //     #[rustfmt::skip]
+        //     Move::Normal { piece, start, .. } => {
+        //         piece.get_moves_protect(self, start).iter().for_each(|_move| {
+        //             match _move {
+        //                 Move::Normal { piece, end, .. } => {
+        //                     self.inc_targeted(*end, piece.owner);
+        //                 }
+        //                 // TODO others
+        //                 _ => panic!(),
+        //             }
+        //         })
+        //     }
+        //     _ => (),
+        // }
 
         self.current_player = self.current_player.the_other();
         _move
     }
 
-    pub fn get_moves(&self) -> Vec<Move> {
-        self.board
+    pub fn get_moves(&self) -> ArrayVec<Move, 512> {
+        let piece_moves = self
+            .board
             .iter()
             .enumerate()
             .flat_map(|(r, v)| {
@@ -251,12 +259,43 @@ impl ChessGame {
                     .filter(|piece| piece.owner == self.current_player)
                     .map(|_| (position, place))
             })
-            .flat_map(|(position, place)| {
+            .map(|(position, place)| {
                 place
                     .map(|piece| piece.get_moves(self, position))
                     .unwrap_or_default()
-            })
-            .collect()
+            });
+
+        let mut moves = ArrayVec::<Move, 512>::new();
+        for list in piece_moves {
+            for item in list.iter() {
+                unsafe {
+                    moves.push_unchecked(*item);
+                }
+            }
+        }
+
+        moves
+    }
+}
+
+impl std::fmt::Debug for Piece {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        let piece = match self.piece_type {
+            PieceTypes::Pawn => "p",
+            PieceTypes::Rook => "r",
+            PieceTypes::Bishop => "b",
+            PieceTypes::Knight => "k",
+            PieceTypes::Queen => "q",
+            PieceTypes::King => "_",
+        };
+        write!(
+            f,
+            "{}",
+            match self.owner {
+                Players::White => piece.to_owned(),
+                Players::Black => piece.to_uppercase(),
+            }
+        )
     }
 }
 
@@ -281,6 +320,47 @@ impl std::fmt::Debug for Move {
             ),
             _ => write!(f, "not supported"),
         }
+    }
+}
+
+impl std::fmt::Debug for ChessGame {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(
+            f,
+            "\n\n{:?},\n{:?},\n{:?},\n{:?},\n{:?},\n{:?},\n{:?},\n{:?}\n",
+            self.board[0].map(|place| place.unwrap_or(Piece {
+                piece_type: PieceTypes::King,
+                owner: Players::White
+            })),
+            self.board[1].map(|place| place.unwrap_or(Piece {
+                piece_type: PieceTypes::King,
+                owner: Players::White
+            })),
+            self.board[2].map(|place| place.unwrap_or(Piece {
+                piece_type: PieceTypes::King,
+                owner: Players::White
+            })),
+            self.board[3].map(|place| place.unwrap_or(Piece {
+                piece_type: PieceTypes::King,
+                owner: Players::White
+            })),
+            self.board[4].map(|place| place.unwrap_or(Piece {
+                piece_type: PieceTypes::King,
+                owner: Players::White
+            })),
+            self.board[5].map(|place| place.unwrap_or(Piece {
+                piece_type: PieceTypes::King,
+                owner: Players::White
+            })),
+            self.board[6].map(|place| place.unwrap_or(Piece {
+                piece_type: PieceTypes::King,
+                owner: Players::White
+            })),
+            self.board[7].map(|place| place.unwrap_or(Piece {
+                piece_type: PieceTypes::King,
+                owner: Players::White
+            })),
+        )
     }
 }
 
