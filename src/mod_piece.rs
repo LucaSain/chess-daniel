@@ -19,7 +19,7 @@ pub struct Piece {
 }
 
 macro_rules! find_moves_loops {
-    ( $moves:ident, $pos:ident, $game:ident, $piece_type:ident, $only_protect:expr, $( $x:expr ),* ) => {
+    ( $moves:ident, $pos:ident, $game:ident, $piece_type:ident, $( $x:expr ),* ) => {
         {
             $(
             for delta in $x {
@@ -33,7 +33,7 @@ macro_rules! find_moves_loops {
                     };
 
                     if let Some(piece) = place  {
-                        if $only_protect || piece.owner != $game.current_player {
+                        if piece.owner != $game.current_player {
                             unsafe {$moves.push_unchecked(_move);}
                         }
                         break;
@@ -51,19 +51,6 @@ macro_rules! find_moves_loops {
 
 impl Piece {
     pub fn get_moves(&self, game: &ChessGame, pos: Position) -> ArrayVec<Move, 32> {
-        self.get_moves_bool(game, pos, false)
-    }
-
-    pub fn get_moves_protect(&self, game: &ChessGame, pos: Position) -> ArrayVec<Move, 32> {
-        self.get_moves_bool(game, pos, true)
-    }
-
-    fn get_moves_bool(
-        &self,
-        game: &ChessGame,
-        pos: Position,
-        only_protect: bool,
-    ) -> ArrayVec<Move, 32> {
         let mut moves = ArrayVec::new();
         match self.piece_type {
             PieceTypes::Pawn => {
@@ -82,8 +69,7 @@ impl Piece {
                     Players::Black => Position::new(-2, 0),
                 };
 
-                if !only_protect
-                    && pos.row() == first_row
+                if pos.row() == first_row
                     && game.get_position(pos + normal_delta).unwrap().is_none()
                     && game.get_position(pos + first_row_delta).unwrap().is_none()
                 {
@@ -101,10 +87,9 @@ impl Piece {
                     Players::Black => [Position::new(-1, 1), Position::new(-1, -1)],
                 };
 
-                if !only_protect
-                    && game
-                        .get_position(pos + normal_delta)
-                        .is_some_and(|place| place.is_none())
+                if game
+                    .get_position(pos + normal_delta)
+                    .is_some_and(|place| place.is_none())
                 {
                     unsafe {
                         moves.push_unchecked(Move::Normal {
@@ -118,7 +103,7 @@ impl Piece {
 
                 for delta in side_deltas {
                     if let Some(place) = game.get_position(pos + delta) {
-                        if only_protect || place.is_some_and(|piece| piece.owner != self.owner) {
+                        if place.is_some_and(|piece| piece.owner != self.owner) {
                             unsafe {
                                 moves.push_unchecked(Move::Normal {
                                     piece: *self,
@@ -182,9 +167,7 @@ impl Piece {
                 .map(|(row, col)| Position::new(*row, *col))
                 {
                     if let Some(place) = game.get_position(pos + delta) {
-                        if only_protect
-                            || place.is_some_and(|piece| piece.owner != game.current_player)
-                        {
+                        if place.is_some_and(|piece| piece.owner != game.current_player) {
                             unsafe {
                                 moves.push_unchecked(Move::Normal {
                                     piece: *self,
@@ -203,7 +186,6 @@ impl Piece {
                     pos,
                     game,
                     self,
-                    only_protect,
                     (1..).map(|x| Position::new(0, x)),
                     (1..).map(|x| Position::new(0, -x)),
                     (1..).map(|x| Position::new(x, 0)),
@@ -217,7 +199,6 @@ impl Piece {
                     pos,
                     game,
                     self,
-                    only_protect,
                     (1..).map(|x| Position::new(x, x)),
                     (1..).map(|x| Position::new(-x, -x)),
                     (1..).map(|x| Position::new(x, -x)),
@@ -231,7 +212,6 @@ impl Piece {
                     pos,
                     game,
                     self,
-                    only_protect,
                     (1..).map(|x| Position::new(0, x)),
                     (1..).map(|x| Position::new(0, -x)),
                     (1..).map(|x| Position::new(x, 0)),

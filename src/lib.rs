@@ -20,8 +20,6 @@ pub enum Move {
 #[derive(Clone)]
 pub struct ChessGame {
     board: [[Option<Piece>; 8]; 8],
-    pub targeted_by_white: [[i8; 8]; 8],
-    pub targeted_by_black: [[i8; 8]; 8],
     pub move_stack: Vec<Move>, // debug
     current_player: Players,
 }
@@ -45,7 +43,7 @@ impl Players {
 impl ChessGame {
     pub fn new() -> Self {
         #[rustfmt::skip]
-        let mut game = ChessGame {
+        let game = ChessGame {
             board: [
                 [
                     Some(Piece {piece_type: PieceTypes::Rook, owner: Players::White}),
@@ -74,29 +72,9 @@ impl ChessGame {
                     Some(Piece {piece_type: PieceTypes::Rook, owner: Players::Black}),
                 ],
             ],
-            targeted_by_white: [[0; 8]; 8],
-            targeted_by_black: [[0; 8]; 8],
             move_stack: Vec::with_capacity(100),
             current_player: Players::White, 
         };
-
-        for (position, place) in game.clone().board.iter().enumerate().flat_map(|(r, v)| {
-            v.iter()
-                .enumerate()
-                .map(move |(c, v)| (Position::new(r as i8, c as i8), v))
-        }) {
-            if let Some(piece) = place {
-                game.real_push(
-                    Move::Normal {
-                        piece: *piece,
-                        start: position,
-                        end: position,
-                        captured_piece: None,
-                    },
-                    true,
-                )
-            }
-        }
 
         game
     }
@@ -114,86 +92,14 @@ impl ChessGame {
         });
     }
 
-    // pub fn get_targeted(&self, position: Position, player: Players) -> Option<i8> {
-    //     match player {
-    //         Players::White => self.targeted_by_white,
-    //         Players::Black => self.targeted_by_black,
-    //     }
-    //     .get(position.row() as usize)
-    //     .and_then(|row| row.get(position.col() as usize))
-    //     .map(|num| *num)
-    // }
-
-    // pub fn inc_targeted(&mut self, position: Position, player: Players) {
-    //     match player {
-    //         Players::White => &mut self.targeted_by_white,
-    //         Players::Black => &mut self.targeted_by_black,
-    //     }
-    //     .get_mut(position.row() as usize)
-    //     .and_then(|row| {
-    //         row.get_mut(position.col() as usize).map(|num| {
-    //             *num += 1;
-    //         })
-    //     });
-    // }
-
-    // pub fn dec_targeted(&mut self, position: Position, player: Players) {
-    //     match player {
-    //         Players::White => &mut self.targeted_by_white,
-    //         Players::Black => &mut self.targeted_by_black,
-    //     }
-    //     .get_mut(position.row() as usize)
-    //     .and_then(|row| {
-    //         row.get_mut(position.col() as usize).map(|num| {
-    //             *num -= 1;
-    //         })
-    //     });
-    // }
-
     pub fn push(&mut self, _move: Move) {
-        self.real_push(_move, false);
-        // std::process::Command::new("clear").status().unwrap();
-        // println!("{:#?}", self.clone());
-        // println!("{:#?}", _move.clone());
-    }
+        self.move_stack.push(_move);
 
-    fn real_push(&mut self, _move: Move, is_new_game: bool) {
-        // if !is_new_game {
-        //     match _move {
-        //         #[rustfmt::skip]
-        //         Move::Normal { piece, start, .. } => {
-        //             piece.get_moves_protect(self, start).iter().for_each(|_move| {
-        //                 match _move {
-        //                     Move::Normal { piece, end, .. } => {
-        //                         self.dec_targeted(*end, piece.owner);
-        //                     }
-        //                     // TODO others
-        //                     _ => panic!(),
-        //                 }
-        //             })
-        //         }
-        //         _ => (),
-        //     }
-        // }
-        if !is_new_game {
-            self.move_stack.push(_move);
-        }
         match _move {
             #[rustfmt::skip]
             Move::Normal { piece, start, end, .. } => {
                 self.set_position(start, None);
                 self.set_position(end, Some(piece));
-                
-                // after a normal move we can't exepect the castling since the king moved
-                // piece.get_moves_protect(self, end).iter().for_each(|_move| {
-                //     match _move {
-                //         Move::Normal { piece, end, .. } => {
-                //             self.inc_targeted(*end, piece.owner);
-                //         }
-                //         // TODO others
-                //         _ => panic!(),
-                //     }
-                // })
             }
             // TODO: other moves
             _ => (),
@@ -207,38 +113,12 @@ impl ChessGame {
         match _move {
             #[rustfmt::skip]
             Move::Normal { piece, start, end, captured_piece }=> {             
-                // piece.get_moves_protect(self, end).iter().for_each(|_move| {
-                //     match _move {
-                //         Move::Normal { piece, end, .. } => {
-                //             self.dec_targeted(*end, piece.owner);
-                //         }
-                //         // TODO others
-                //         _ => panic!(),
-                //     }
-                // });
-
                 self.set_position(start, Some(piece));
                 self.set_position(end, captured_piece);
             }
             // TODO: other moves
             _ => (),
         };
-
-        // match _move {
-        //     #[rustfmt::skip]
-        //     Move::Normal { piece, start, .. } => {
-        //         piece.get_moves_protect(self, start).iter().for_each(|_move| {
-        //             match _move {
-        //                 Move::Normal { piece, end, .. } => {
-        //                     self.inc_targeted(*end, piece.owner);
-        //                 }
-        //                 // TODO others
-        //                 _ => panic!(),
-        //             }
-        //         })
-        //     }
-        //     _ => (),
-        // }
 
         self.current_player = self.current_player.the_other();
         _move
