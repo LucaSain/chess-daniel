@@ -73,7 +73,7 @@ impl ChessGame {
                 ],
             ],
             move_stack: Vec::with_capacity(100),
-            current_player: Players::White, 
+            current_player: Players::White,
         };
 
         game
@@ -112,7 +112,7 @@ impl ChessGame {
 
         match _move {
             #[rustfmt::skip]
-            Move::Normal { piece, start, end, captured_piece }=> {             
+            Move::Normal { piece, start, end, captured_piece } => {
                 self.set_position(start, Some(piece));
                 self.set_position(end, captured_piece);
             }
