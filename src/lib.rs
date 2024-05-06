@@ -29,7 +29,7 @@ use arrayvec::ArrayVec;
 use mod_piece::*;
 
 mod mod_position;
-use mod_position::*;
+pub use mod_position::*;
 
 impl Players {
     fn the_other(&self) -> Self {
@@ -155,6 +155,143 @@ impl ChessGame {
         }
 
         moves
+    }
+
+    // Returns if position is targeted by enemy pieces (including by the king or not,
+    // this is required for finding valid moves for the king)
+    pub fn is_targeted(&self, position: Position, including_king: bool) -> bool {
+        // This function should only be called with valid positions
+        if self.get_position(position).is_none() {
+            panic!();
+        }
+
+        // When finding is a move is valid for the king we need to check
+        // if it is targeted by a non-king piece, so do this conditionally
+        if including_king {
+            for delta in [
+                (1, 0),
+                (0, 1),
+                (-1, 0),
+                (0, -1),
+                (1, 1),
+                (-1, 1),
+                (1, -1),
+                (-1, -1),
+            ]
+            .iter()
+            .map(|(row, col)| Position::new(*row, *col))
+            {
+                if let Some(place) = self.get_position(position + delta) {
+                    if place.is_some_and(|piece| {
+                        piece.owner != self.current_player && piece.piece_type == PieceTypes::King
+                    }) {
+                        return true;
+                    }
+                }
+            }
+        }
+
+        // Verify for knights
+        for delta in [
+            (1, 2),
+            (2, 1),
+            (-1, -2),
+            (-2, -1),
+            (1, -2),
+            (-2, -1),
+            (-1, 2),
+            (2, -1),
+        ]
+        .iter()
+        .map(|(row, col)| Position::new(*row, *col))
+        {
+            if let Some(place) = self.get_position(position + delta) {
+                if place.is_some_and(|piece| {
+                    piece.owner != self.current_player && piece.piece_type == PieceTypes::Knight
+                }) {
+                    return true;
+                }
+            }
+        }
+
+        // Verify for pawns
+        match self.current_player {
+            Players::White => {
+                if let Some(place) = self.get_position(position + Position::new(1, 1)) {
+                    if place.is_some_and(|piece| {
+                        piece.owner != self.current_player && piece.piece_type == PieceTypes::Pawn
+                    }) {
+                        return true;
+                    }
+                }
+                if let Some(place) = self.get_position(position + Position::new(1, -1)) {
+                    if place.is_some_and(|piece| {
+                        piece.owner != self.current_player && piece.piece_type == PieceTypes::Pawn
+                    }) {
+                        return true;
+                    }
+                }
+            }
+            Players::Black => {
+                if let Some(place) = self.get_position(position + Position::new(-1, 1)) {
+                    if place.is_some_and(|piece| {
+                        piece.owner != self.current_player && piece.piece_type == PieceTypes::Pawn
+                    }) {
+                        return true;
+                    }
+                }
+                if let Some(place) = self.get_position(position + Position::new(-1, -1)) {
+                    if place.is_some_and(|piece| {
+                        piece.owner != self.current_player && piece.piece_type == PieceTypes::Pawn
+                    }) {
+                        return true;
+                    }
+                }
+            }
+        };
+
+        // Helpful macro
+        macro_rules! search_enemies_loops {
+            ( $piece_type1:expr, $piece_type2:expr, $( $x:expr ),* ) => {
+                $(
+                for delta in $x {
+                    if let Some(place) = self.get_position(position + delta) {
+                        if let Some(piece) = place  {
+                            if piece.owner != self.current_player &&
+                                (piece.piece_type == $piece_type1 || piece.piece_type == $piece_type2) {
+                                return true
+                            }
+                            break;
+                        }
+                    } else {
+                        break;
+                    }
+                }
+                )*
+            };
+        }
+
+        // Verify lines for rooks/queens
+        search_enemies_loops![
+            PieceTypes::Rook,
+            PieceTypes::Queen,
+            (1..).map(|x| Position::new(0, x)),
+            (1..).map(|x| Position::new(0, -x)),
+            (1..).map(|x| Position::new(x, 0)),
+            (1..).map(|x| Position::new(-x, 0))
+        ];
+
+        // Verify diagonals for bishops/queens
+        search_enemies_loops![
+            PieceTypes::Bishop,
+            PieceTypes::Queen,
+            (1..).map(|x| Position::new(x, x)),
+            (1..).map(|x| Position::new(-x, -x)),
+            (1..).map(|x| Position::new(x, -x)),
+            (1..).map(|x| Position::new(-x, x))
+        ];
+
+        false
     }
 }
 
