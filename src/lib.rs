@@ -297,22 +297,7 @@ impl ChessGame {
 
 impl std::fmt::Debug for Piece {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        let piece = match self.piece_type {
-            PieceTypes::Pawn => "p",
-            PieceTypes::Rook => "r",
-            PieceTypes::Bishop => "b",
-            PieceTypes::Knight => "k",
-            PieceTypes::Queen => "q",
-            PieceTypes::King => "_",
-        };
-        write!(
-            f,
-            "{}",
-            match self.owner {
-                Players::White => piece.to_owned(),
-                Players::Black => piece.to_uppercase(),
-            }
-        )
+        write!(f, "{}", self.as_char())
     }
 }
 
@@ -342,42 +327,13 @@ impl std::fmt::Debug for Move {
 
 impl std::fmt::Debug for ChessGame {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(
-            f,
-            "\n\n{:?},\n{:?},\n{:?},\n{:?},\n{:?},\n{:?},\n{:?},\n{:?}\n",
-            self.board[0].map(|place| place.unwrap_or(Piece {
-                piece_type: PieceTypes::King,
-                owner: Players::White
-            })),
-            self.board[1].map(|place| place.unwrap_or(Piece {
-                piece_type: PieceTypes::King,
-                owner: Players::White
-            })),
-            self.board[2].map(|place| place.unwrap_or(Piece {
-                piece_type: PieceTypes::King,
-                owner: Players::White
-            })),
-            self.board[3].map(|place| place.unwrap_or(Piece {
-                piece_type: PieceTypes::King,
-                owner: Players::White
-            })),
-            self.board[4].map(|place| place.unwrap_or(Piece {
-                piece_type: PieceTypes::King,
-                owner: Players::White
-            })),
-            self.board[5].map(|place| place.unwrap_or(Piece {
-                piece_type: PieceTypes::King,
-                owner: Players::White
-            })),
-            self.board[6].map(|place| place.unwrap_or(Piece {
-                piece_type: PieceTypes::King,
-                owner: Players::White
-            })),
-            self.board[7].map(|place| place.unwrap_or(Piece {
-                piece_type: PieceTypes::King,
-                owner: Players::White
-            })),
-        )
+        write!(f, "\n")?;
+        self.board.iter().try_for_each(|row| -> std::fmt::Result {
+            row.iter().try_for_each(|place| -> std::fmt::Result {
+                write!(f, "|{}", place.map(|piece| piece.as_char()).unwrap_or(' '))
+            })?;
+            write!(f, "|\n")
+        })
     }
 }
 

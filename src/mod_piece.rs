@@ -226,4 +226,25 @@ impl Piece {
 
         moves
     }
+
+    pub fn as_char(&self) -> char {
+        match self.owner {
+            Players::White => match self.piece_type {
+                PieceTypes::King => '♔',
+                PieceTypes::Queen => '♕',
+                PieceTypes::Rook => '♖',
+                PieceTypes::Bishop => '♗',
+                PieceTypes::Knight => '♘',
+                PieceTypes::Pawn => '♙',
+            },
+            Players::Black => match self.piece_type {
+                PieceTypes::King => '♚',
+                PieceTypes::Queen => '♛',
+                PieceTypes::Rook => '♜',
+                PieceTypes::Bishop => '♝',
+                PieceTypes::Knight => '♞',
+                PieceTypes::Pawn => '♟',
+            },
+        }
+    }
 }
