@@ -121,36 +121,39 @@ impl Piece {
                 // TODO: Promotion
             }
             PieceTypes::King => {
-                // for delta in [
-                //     (0, 1),
-                //     (0, -1),
-                //     (1, 0),
-                //     (-1, 0),
-                //     (1, 1),
-                //     (1, -1),
-                //     (-1, 1),
-                //     (-1, -1),
-                // ]
-                // .iter()
-                // .map(|(row, col)| Position::new(*row, *col))
-                // {
-                //     if !only_protect
-                //         && game
-                //             .get_targeted(pos + delta, self.owner.the_other())
-                //             .is_some_and(|num| num == 0)
-                //     {
-                //         if let Some(place) = game.get_position(pos + delta) {
-                //             if place.is_none() {
-                //                 moves.push(Move::Normal {
-                //                     piece: *self,
-                //                     start: pos,
-                //                     end: pos + delta,
-                //                     captured_piece: *place,
-                //                 });
-                //             }
-                //         }
-                //     }
-                // }
+                for delta in [
+                    (0, 1),
+                    (0, -1),
+                    (1, 0),
+                    (-1, 0),
+                    (1, 1),
+                    (1, -1),
+                    (-1, 1),
+                    (-1, -1),
+                ]
+                .iter()
+                .map(|(row, col)| Position::new(*row, *col))
+                {
+                    if let Some(place) = game.get_position(pos + delta) {
+                        if !game.is_targeted(pos + delta, false)
+                            && !game
+                                .get_position(pos + delta)
+                                .unwrap()
+                                .is_some_and(|piece| piece.owner == game.current_player)
+                        {
+                            unsafe {
+                                moves.push_unchecked(Move::Normal {
+                                    piece: *self,
+                                    start: pos,
+                                    end: pos + delta,
+                                    captured_piece: *place,
+                                });
+                            }
+                        }
+                    }
+                }
+
+                // TODO: Castling
             }
             PieceTypes::Knight => {
                 for delta in [

@@ -22,6 +22,7 @@ pub struct ChessGame {
     board: [[Option<Piece>; 8]; 8],
     pub move_stack: Vec<Move>, // debug
     current_player: Players,
+    king_positions: [Position; 2], // for finding if it is in check
 }
 
 mod mod_piece;
@@ -73,6 +74,10 @@ impl ChessGame {
                 ],
             ],
             move_stack: Vec::with_capacity(100),
+            king_positions: [
+                Position::new(0, 4),
+                Position::new(7, 4),
+            ],
             current_player: Players::White,
         };
 
@@ -100,6 +105,10 @@ impl ChessGame {
             Move::Normal { piece, start, end, .. } => {
                 self.set_position(start, None);
                 self.set_position(end, Some(piece));
+
+                if piece.piece_type == PieceTypes::King {
+                    self.king_positions[self.current_player as usize] = end;
+                }
             }
             // TODO: other moves
             _ => (),
@@ -109,23 +118,27 @@ impl ChessGame {
 
     pub fn pop(&mut self) -> Move {
         let _move = self.move_stack.pop().expect("Tried to pop a new game");
+        self.current_player = self.current_player.the_other();
 
         match _move {
             #[rustfmt::skip]
             Move::Normal { piece, start, end, captured_piece } => {
                 self.set_position(start, Some(piece));
                 self.set_position(end, captured_piece);
+
+                if piece.piece_type == PieceTypes::King {
+                    self.king_positions[self.current_player as usize] = start;
+                }
             }
             // TODO: other moves
             _ => (),
         };
 
-        self.current_player = self.current_player.the_other();
         _move
     }
 
-    pub fn get_moves(&self) -> ArrayVec<Move, 64> {
-        let piece_moves = self
+    pub fn get_moves(&mut self) -> ArrayVec<Move, 64> {
+        let piece_moves: ArrayVec<ArrayVec<Move, 27>, 32> = self
             .board
             .iter()
             .enumerate()
@@ -143,7 +156,28 @@ impl ChessGame {
                 place
                     .map(|piece| piece.get_moves(self, position))
                     .unwrap_or_default()
-            });
+            })
+            .collect();
+
+        // If king is in check only select moves which allow king to escape check
+        if self.is_targeted(self.king_positions[self.current_player as usize], false) {
+            let mut moves = ArrayVec::new();
+            for list in piece_moves {
+                for item in list.iter() {
+                    self.push(*item);
+                    self.current_player = self.current_player.the_other();
+                    if !self.is_targeted(self.king_positions[self.current_player as usize], false) {
+                        unsafe {
+                            moves.push_unchecked(*item);
+                        }
+                    }
+                    self.current_player = self.current_player.the_other();
+                    self.pop();
+                }
+            }
+
+            return moves;
+        }
 
         let mut moves = ArrayVec::new();
         for list in piece_moves {
