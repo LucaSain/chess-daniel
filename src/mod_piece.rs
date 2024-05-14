@@ -162,7 +162,7 @@ impl Piece {
                     (-1, -2),
                     (-2, -1),
                     (1, -2),
-                    (-2, -1),
+                    (-2, 1),
                     (-1, 2),
                     (2, -1),
                 ]
@@ -170,7 +170,9 @@ impl Piece {
                 .map(|(row, col)| Position::new(*row, *col))
                 {
                     if let Some(place) = game.get_position(pos + delta) {
-                        if place.is_some_and(|piece| piece.owner != game.current_player) {
+                        if place.is_none()
+                            || place.is_some_and(|piece| piece.owner != game.current_player)
+                        {
                             unsafe {
                                 moves.push_unchecked(Move::Normal {
                                     piece: *self,
