@@ -86,7 +86,6 @@ fn get_best_move_main(game: &mut ChessGame, depth: usize) -> Option<Move> {
         }
         best_moves = best_paths.into_iter().map(|(_, moves)| moves).collect();
     }
-    dbg!(game.get_moves());
     best_moves[0].first().map(|x| *x)
 }
 
@@ -144,7 +143,8 @@ fn main() {
         // dbg!(game.score());
         // dbg!(game.clone());
 
-        let _move = get_best_move_main(&mut game, 6);
+        // let _move = get_best_move_main(&mut game, 6);
+        let _move = get_best_move(&mut game, 6).0;
         game.push(_move.unwrap());
         dbg!(_move.unwrap());
         dbg!(game.score());
