@@ -30,7 +30,7 @@ pub enum Move {
 
 #[derive(Clone)]
 // all fields are public for debugging
-// RODO: remove pub 
+// TODO: remove pub
 pub struct ChessGame {
     pub board: [[Option<Piece>; 8]; 8],
     pub move_stack: Vec<Move>, // debug
@@ -303,9 +303,9 @@ impl ChessGame {
             for item in list.iter() {
                 self.push(*item);
                 if !self.is_targeted(self.king_positions[player as usize]) {
-                unsafe {
-                    moves.push_unchecked(*item);
-                }
+                    unsafe {
+                        moves.push_unchecked(*item);
+                    }
                 }
                 self.pop();
             }
@@ -319,24 +319,24 @@ impl ChessGame {
         // This function should only be called with valid pieces
         let player = self.get_position(position).unwrap().unwrap().owner;
 
-            for delta in [
-                (1, 0),
-                (0, 1),
-                (-1, 0),
-                (0, -1),
-                (1, 1),
-                (-1, 1),
-                (1, -1),
-                (-1, -1),
-            ]
-            .iter()
-            .map(|(row, col)| Position::new(*row, *col))
-            {
-                if let Some(place) = self.get_position(position + delta) {
-                    if place.is_some_and(|piece| {
+        for delta in [
+            (1, 0),
+            (0, 1),
+            (-1, 0),
+            (0, -1),
+            (1, 1),
+            (-1, 1),
+            (1, -1),
+            (-1, -1),
+        ]
+        .iter()
+        .map(|(row, col)| Position::new(*row, *col))
+        {
+            if let Some(place) = self.get_position(position + delta) {
+                if place.is_some_and(|piece| {
                     piece.owner != player && piece.piece_type == PieceTypes::King
-                    }) {
-                        return true;
+                }) {
+                    return true;
                 }
             }
         }
@@ -484,10 +484,10 @@ impl std::fmt::Debug for ChessGame {
             .rev()
             .try_for_each(|(i, row)| -> std::fmt::Result {
                 write!(f, "{} ", i)?;
-            row.iter().try_for_each(|place| -> std::fmt::Result {
-                write!(f, "|{}", place.map(|piece| piece.as_char()).unwrap_or(' '))
-            })?;
-            write!(f, "|\n")
+                row.iter().try_for_each(|place| -> std::fmt::Result {
+                    write!(f, "|{}", place.map(|piece| piece.as_char()).unwrap_or(' '))
+                })?;
+                write!(f, "|\n")
             })?;
         write!(f, "\n   0 1 2 3 4 5 6 7\n")
     }
