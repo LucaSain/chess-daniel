@@ -29,16 +29,20 @@ pub enum Move {
 }
 
 #[derive(Clone)]
+// all fields are public for debugging
+// RODO: remove pub 
 pub struct ChessGame {
-    board: [[Option<Piece>; 8]; 8],
+    pub board: [[Option<Piece>; 8]; 8],
     pub move_stack: Vec<Move>, // debug
-    current_player: Players,
-    king_positions: [Position; 2], // for finding if it is in check
+    pub current_player: Players,
+    pub has_castled: [bool; 2],
+    pub king_positions: [Position; 2], // for finding if it is in check
 }
 
 mod mod_piece;
+
 use arrayvec::ArrayVec;
-use mod_piece::*;
+pub use mod_piece::*;
 
 mod mod_position;
 pub use mod_position::*;
@@ -101,8 +105,8 @@ impl ChessGame {
             .get(position.row() as usize)
             .and_then(|row| row.get(position.col() as usize))
     }
-
-    fn set_position(&mut self, position: Position, new_place: Option<Piece>) {
+    // pub for debugging
+    pub fn set_position(&mut self, position: Position, new_place: Option<Piece>) {
         self.board.get_mut(position.row() as usize).and_then(|row| {
             row.get_mut(position.col() as usize)
                 .map(|place| *place = new_place)
