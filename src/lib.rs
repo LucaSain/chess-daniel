@@ -443,6 +443,131 @@ impl ChessGame {
 
         false
     }
+
+    pub fn score(&mut self) -> f64 {
+        let mut sum = 0.0;
+
+        if self.has_castled[0] {
+            sum += 0.7
+        }
+
+        if self.has_castled[1] {
+            sum -= 0.7
+        }
+
+        // let original_player = self.current_player;
+        // self.current_player = Players::White;
+        // let white_king = self.king_positions[Players::White as usize];
+        // let white_king_moves = self
+        //     .get_position(white_king)
+        //     .unwrap()
+        //     .unwrap()
+        //     .get_moves(self, white_king)
+        //     .into_iter()
+        //     .filter(|_move| match _move {
+        //         Move::Normal { .. } => true,
+        //         _ => false,
+        //     })
+        //     .count();
+
+        // let white_king_all_moves = [
+        //     (0, 1),
+        //     (0, -1),
+        //     (1, 0),
+        //     (-1, 0),
+        //     (1, 1),
+        //     (1, -1),
+        //     (-1, 1),
+        //     (-1, -1),
+        // ]
+        // .iter()
+        // .map(|(row, col)| Position::new(*row, *col))
+        // .fold(0, |acc, delta| {
+        //     if let Some(place) =
+        //         self.get_position(self.king_positions[Players::White as usize] + delta)
+        //     {
+        //         if place.is_none() || place.is_some_and(|piece| piece.owner == Players::Black) {
+        //             acc + 1
+        //         } else {
+        //             acc
+        //         }
+        //     } else {
+        //         acc
+        //     }
+        // });
+
+        // let white_count = white_king_all_moves - white_king_moves;
+        // if white_count > 3 {
+        //     sum -= (white_count - 2).pow(2) as f64;
+        //     if self.is_targeted(self.king_positions[Players::White as usize]) {
+        //         sum -= 10.0;
+        //     }
+        // }
+
+        // self.current_player = Players::Black;
+        // let black_king = self.king_positions[Players::Black as usize];
+        // let black_king_moves = self
+        //     .get_position(black_king)
+        //     .unwrap()
+        //     .unwrap()
+        //     .get_moves(self, black_king)
+        //     .into_iter()
+        //     .filter(|_move| match _move {
+        //         Move::Normal { .. } => true,
+        //         _ => false,
+        //     })
+        //     .count();
+
+        // let black_king_all_moves = [
+        //     (0, 1),
+        //     (0, -1),
+        //     (1, 0),
+        //     (-1, 0),
+        //     (1, 1),
+        //     (1, -1),
+        //     (-1, 1),
+        //     (-1, -1),
+        // ]
+        // .iter()
+        // .map(|(row, col)| Position::new(*row, *col))
+        // .fold(0, |acc, delta| {
+        //     if let Some(place) =
+        //         self.get_position(self.king_positions[Players::Black as usize] + delta)
+        //     {
+        //         if place.is_none() || place.is_some_and(|piece| piece.owner == Players::White) {
+        //             acc + 1
+        //         } else {
+        //             acc
+        //         }
+        //     } else {
+        //         acc
+        //     }
+        // });
+
+        // let black_count = black_king_all_moves - black_king_moves;
+        // if black_count > 3 {
+        //     sum += (black_count - 2).pow(2) as f64;
+        //     if self.is_targeted(self.king_positions[Players::Black as usize]) {
+        //         sum += 10.0;
+        //     }
+        // }
+
+        // self.current_player = original_player;
+        for i in 0..8 {
+            for j in 0..8 {
+                let pos = Position::new(i, j);
+                unsafe {
+                    sum += self
+                        .board
+                        .get_unchecked(i as usize)
+                        .get_unchecked(j as usize)
+                        .map(|piece| piece.score(pos))
+                        .unwrap_or(0.0);
+                }
+            }
+        }
+        sum
+    }
 }
 
 impl std::fmt::Debug for Piece {
