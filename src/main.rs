@@ -1,12 +1,13 @@
-use std::collections::BTreeMap;
-
 use chess::*;
+use rayon::iter::{IntoParallelIterator, ParallelIterator};
+
+use std::collections::BTreeMap;
 
 const NUM_MOVES: usize = 30;
 
 fn get_best_move(game: &mut ChessGame, depth: usize) -> (Option<Move>, f64) {
     if depth == 0 {
-        return (None, game.score());
+        return (None, game.score);
     }
 
     let player = game.current_player;
@@ -15,6 +16,39 @@ fn get_best_move(game: &mut ChessGame, depth: usize) -> (Option<Move>, f64) {
         let best_move = get_best_move(game, depth - 1);
         game.pop();
         (Some(_move), best_move.1)
+    });
+
+    match player {
+        Players::White => iter
+            .max_by(|move1, move2| move1.1.total_cmp(&move2.1))
+            .unwrap_or(if game.is_targeted(game.king_positions[player as usize]) {
+                (None, -1000.0)
+            } else {
+                (None, 0.0)
+            }),
+        Players::Black => iter
+            .min_by(|move1, move2| move1.1.total_cmp(&move2.1))
+            .unwrap_or(if game.is_targeted(game.king_positions[player as usize]) {
+                (None, 1000.0)
+            } else {
+                (None, 0.0)
+            }),
+    }
+}
+
+fn get_best_move_iter(game: &mut ChessGame, depth: usize) -> (Option<Move>, f64) {
+    if depth == 0 {
+        return (None, game.score);
+    }
+
+    let player = game.current_player;
+    let moves = game.get_moves();
+    let iter = moves.into_par_iter().map(|_move| {
+        let mut new_game = game.clone();
+        new_game.push(*_move);
+        let best_move = get_best_move(&mut new_game, depth - 1);
+        new_game.pop();
+        (Some(*_move), best_move.1)
     });
 
     match player {
@@ -144,10 +178,10 @@ fn main() {
         // dbg!(game.clone());
 
         // let _move = get_best_move_main(&mut game, 6);
-        let _move = get_best_move(&mut game, 6).0;
+        let _move = get_best_move_iter(&mut game, 5).0;
         game.push(_move.unwrap());
         dbg!(_move.unwrap());
-        dbg!(game.score());
+        dbg!(game.score);
         dbg!(game.clone());
     }
 }

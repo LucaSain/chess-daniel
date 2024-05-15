@@ -37,6 +37,7 @@ pub struct ChessGame {
     pub current_player: Players,
     pub has_castled: [bool; 2],
     pub king_positions: [Position; 2], // for finding if it is in check
+    pub score: f64,
 }
 
 use arrayvec::ArrayVec;
@@ -95,6 +96,7 @@ impl ChessGame {
                 Position::new(7, 4).unwrap(),
             ],
             current_player: Players::White,
+            score: 0.0,
         };
 
         game
@@ -108,25 +110,38 @@ impl ChessGame {
                 .get_unchecked(position.col() as usize)
         }
     }
+
     // pub for debugging
-    pub fn set_position(&mut self, position: Position, new_place: Option<Piece>) {
+    pub fn set_position(
+        &mut self,
+        position: Position,
+        new_place: Option<Piece>,
+        update_score: bool,
+    ) {
         // position is always valid
         unsafe {
-            *self
+            let place = self
                 .board
                 .get_unchecked_mut(position.row() as usize)
-                .get_unchecked_mut(position.col() as usize) = new_place;
+                .get_unchecked_mut(position.col() as usize);
+            if update_score {
+                self.score -= place.map(|piece| piece.score(position)).unwrap_or_default();
+                *place = new_place;
+                self.score += place.map(|piece| piece.score(position)).unwrap_or_default();
+            } else {
+                *place = new_place
+            }
         }
     }
 
-    pub fn push(&mut self, _move: Move) {
+    fn real_push(&mut self, _move: Move, update_score: bool) {
         self.move_stack.push(_move);
 
         match _move {
             #[rustfmt::skip]
             Move::Normal { piece, start, end, .. } => {
-                self.set_position(start, None);
-                self.set_position(end, Some(piece));
+                self.set_position(start, None, update_score);
+                self.set_position(end, Some(piece), update_score);
 
                 if piece.piece_type == PieceTypes::King {
                     self.king_positions[self.current_player as usize] = end;
@@ -134,13 +149,14 @@ impl ChessGame {
             }
             #[rustfmt::skip]
             Move::Promovation { owner, start, end, .. } => {
-                self.set_position(start, None);
+                self.set_position(start, None, update_score);
                 self.set_position(
                     end,
                     Some(Piece {
                         owner,
                         piece_type: PieceTypes::Queen,
                     }),
+                    update_score,
                 );
             }
             Move::CastlingLong { owner } => {
@@ -158,14 +174,15 @@ impl ChessGame {
                     )
                 };
 
-                self.set_position(old_rook, None);
-                self.set_position(old_king, None);
+                self.set_position(old_rook, None, update_score);
+                self.set_position(old_king, None, update_score);
                 self.set_position(
                     new_rook,
                     Some(Piece {
                         piece_type: PieceTypes::Rook,
                         owner,
                     }),
+                    update_score,
                 );
 
                 self.set_position(
@@ -174,6 +191,7 @@ impl ChessGame {
                         piece_type: PieceTypes::King,
                         owner,
                     }),
+                    update_score,
                 );
 
                 self.has_castled[self.current_player as usize] = true;
@@ -194,14 +212,15 @@ impl ChessGame {
                     )
                 };
 
-                self.set_position(old_rook, None);
-                self.set_position(old_king, None);
+                self.set_position(old_rook, None, update_score);
+                self.set_position(old_king, None, update_score);
                 self.set_position(
                     new_rook,
                     Some(Piece {
                         piece_type: PieceTypes::Rook,
                         owner,
                     }),
+                    update_score,
                 );
 
                 self.set_position(
@@ -210,6 +229,7 @@ impl ChessGame {
                         piece_type: PieceTypes::King,
                         owner,
                     }),
+                    update_score,
                 );
 
                 self.has_castled[self.current_player as usize] = true;
@@ -220,15 +240,15 @@ impl ChessGame {
         self.current_player = self.current_player.the_other();
     }
 
-    pub fn pop(&mut self) -> Move {
+    fn real_pop(&mut self, update_score: bool) -> Move {
         let _move = self.move_stack.pop().expect("Tried to pop a new game");
         self.current_player = self.current_player.the_other();
 
         match _move {
             #[rustfmt::skip]
             Move::Normal { piece, start, end, captured_piece } => {
-                self.set_position(start, Some(piece));
-                self.set_position(end, captured_piece);
+                self.set_position(start, Some(piece), update_score);
+                self.set_position(end, captured_piece, update_score);
 
                 if piece.piece_type == PieceTypes::King {
                     self.king_positions[self.current_player as usize] = start;
@@ -241,9 +261,10 @@ impl ChessGame {
                     Some(Piece {
                         piece_type: PieceTypes::Pawn,
                         owner
-                    })
+                    }),
+                    update_score,
                 );
-                self.set_position(end, captured_piece);
+                self.set_position(end, captured_piece, update_score);
             }
             Move::CastlingLong { owner } => {
                 let row = match owner {
@@ -260,14 +281,15 @@ impl ChessGame {
                     )
                 };
 
-                self.set_position(new_rook, None);
-                self.set_position(new_king, None);
+                self.set_position(new_rook, None, update_score);
+                self.set_position(new_king, None, update_score);
                 self.set_position(
                     old_rook,
                     Some(Piece {
                         piece_type: PieceTypes::Rook,
                         owner,
                     }),
+                    update_score,
                 );
 
                 self.set_position(
@@ -276,6 +298,7 @@ impl ChessGame {
                         piece_type: PieceTypes::King,
                         owner,
                     }),
+                    update_score,
                 );
 
                 self.has_castled[owner as usize] = false;
@@ -296,14 +319,15 @@ impl ChessGame {
                     )
                 };
 
-                self.set_position(new_rook, None);
-                self.set_position(new_king, None);
+                self.set_position(new_rook, None, update_score);
+                self.set_position(new_king, None, update_score);
                 self.set_position(
                     old_rook,
                     Some(Piece {
                         piece_type: PieceTypes::Rook,
                         owner,
                     }),
+                    update_score,
                 );
 
                 self.set_position(
@@ -312,6 +336,7 @@ impl ChessGame {
                         piece_type: PieceTypes::King,
                         owner,
                     }),
+                    update_score,
                 );
 
                 self.has_castled[owner as usize] = false;
@@ -320,6 +345,14 @@ impl ChessGame {
         };
 
         _move
+    }
+
+    pub fn push(&mut self, _move: Move) {
+        self.real_push(_move, true);
+    }
+
+    pub fn pop(&mut self) {
+        self.real_pop(true);
     }
 
     pub fn get_moves(&mut self) -> ArrayVec<Move, 128> {
@@ -349,13 +382,13 @@ impl ChessGame {
         let player = self.current_player;
         for list in piece_moves {
             for item in list.iter() {
-                self.push(*item);
+                self.real_push(*item, false);
                 if !self.is_targeted(self.king_positions[player as usize]) {
                     unsafe {
                         moves.push_unchecked(*item);
                     }
                 }
-                self.pop();
+                self.real_pop(false);
             }
         }
 
@@ -489,29 +522,6 @@ impl ChessGame {
         ];
 
         false
-    }
-
-    pub fn score(&mut self) -> f64 {
-        let mut sum = 0.0;
-
-        if self.has_castled[0] {
-            sum += 0.7
-        }
-
-        if self.has_castled[1] {
-            sum -= 0.7
-        }
-
-        for i in 0..8 {
-            for j in 0..8 {
-                let pos = unsafe { Position::new_unsafe(i, j) };
-                sum += self
-                    .get_position(pos)
-                    .map(|piece| piece.score(pos))
-                    .unwrap_or(0.0);
-            }
-        }
-        sum
     }
 }
 
