@@ -12,9 +12,20 @@ pub enum Move {
         end: Position,
         captured_piece: Option<Piece>,
     },
-    CastlingShort,
-    CastlingLong,
-    Promovation,
+    Promovation {
+        // Assumed to alwasys be to queen
+        owner: Players,
+        start: Position,
+        end: Position,
+        captured_piece: Option<Piece>,
+    },
+    CastlingShort {
+        owner: Players,
+    },
+    CastlingLong {
+        owner: Players,
+    },
+    // No en passant
 }
 
 #[derive(Clone)]
@@ -74,6 +85,7 @@ impl ChessGame {
                 ],
             ],
             move_stack: Vec::with_capacity(100),
+            has_castled: [false; 2],
             king_positions: [
                 Position::new(0, 4),
                 Position::new(7, 4),
@@ -110,9 +122,73 @@ impl ChessGame {
                     self.king_positions[self.current_player as usize] = end;
                 }
             }
-            // TODO: other moves
-            _ => (),
+            #[rustfmt::skip]
+            Move::Promovation { owner, start, end, .. } => {
+                self.set_position(start, None);
+                self.set_position(
+                    end,
+                    Some(Piece {
+                        owner,
+                        piece_type: PieceTypes::Queen,
+                    }),
+                );
+            }
+            Move::CastlingLong { owner } => {
+                let row = match owner {
+                    Players::White => 0,
+                    Players::Black => 7,
+                };
+
+                self.set_position(Position::new(row, 0), None);
+                self.set_position(
+                    Position::new(row, 3),
+                    Some(Piece {
+                        piece_type: PieceTypes::Rook,
+                        owner,
+                    }),
+                );
+
+                self.set_position(Position::new(row, 4), None);
+                self.set_position(
+                    Position::new(row, 2),
+                    Some(Piece {
+                        piece_type: PieceTypes::King,
+                        owner,
+                    }),
+                );
+
+                self.has_castled[self.current_player as usize] = true;
+                self.king_positions[self.current_player as usize] = Position::new(row, 2);
+            }
+            Move::CastlingShort { owner } => {
+                let row = match owner {
+                    Players::White => 0,
+                    Players::Black => 7,
+                };
+
+                self.set_position(Position::new(row, 7), None);
+                self.set_position(
+                    Position::new(row, 5),
+                    Some(Piece {
+                        piece_type: PieceTypes::Rook,
+                        owner,
+                    }),
+                );
+
+                self.set_position(Position::new(row, 4), None);
+                self.set_position(
+                    Position::new(row, 6),
+                    Some(Piece {
+                        piece_type: PieceTypes::King,
+                        owner,
+                    }),
+                );
+
+                self.has_castled[self.current_player as usize] = true;
+                self.king_positions[self.current_player as usize] = Position::new(row, 6)
+            }
         };
+
         self.current_player = self.current_player.the_other();
     }
 
@@ -130,14 +206,71 @@ impl ChessGame {
                     self.king_positions[self.current_player as usize] = start;
                 }
             }
-            // TODO: other moves
-            _ => (),
+            #[rustfmt::skip]
+            Move::Promovation { owner, start, end, captured_piece } => {
+                self.set_position(start, Some(Piece { piece_type: PieceTypes::Pawn, owner }));
+                self.set_position(end, captured_piece);
+            }
+            Move::CastlingLong { owner } => {
+                let row = match owner {
+                    Players::White => 0,
+                    Players::Black => 7,
+                };
+
+                self.set_position(
+                    Position::new(row, 0),
+                    Some(Piece {
+                        piece_type: PieceTypes::Rook,
+                        owner,
+                    }),
+                );
+                self.set_position(Position::new(row, 3), None);
+
+                self.set_position(
+                    Position::new(row, 4),
+                    Some(Piece {
+                        piece_type: PieceTypes::King,
+                        owner,
+                    }),
+                );
+                self.set_position(Position::new(row, 2), None);
+
+                self.has_castled[owner as usize] = false;
+                self.king_positions[owner as usize] = Position::new(row, 4);
+            }
+            Move::CastlingShort { owner } => {
+                let row = match owner {
+                    Players::White => 0,
+                    Players::Black => 7,
+                };
+
+                self.set_position(
+                    Position::new(row, 7),
+                    Some(Piece {
+                        piece_type: PieceTypes::Rook,
+                        owner,
+                    }),
+                );
+                self.set_position(Position::new(row, 5), None);
+
+                self.set_position(
+                    Position::new(row, 4),
+                    Some(Piece {
+                        piece_type: PieceTypes::King,
+                        owner,
+                    }),
+                );
+                self.set_position(Position::new(row, 6), None);
+
+                self.has_castled[owner as usize] = false;
+                self.king_positions[owner as usize] = Position::new(row, 4)
+            }
         };
 
         _move
     }
 
-    pub fn get_moves(&mut self) -> ArrayVec<Move, 64> {
+    pub fn get_moves(&mut self) -> ArrayVec<Move, 128> {
         let piece_moves: ArrayVec<ArrayVec<Move, 27>, 32> = self
             .board
             .iter()
@@ -159,49 +292,29 @@ impl ChessGame {
             })
             .collect();
 
-        // If king is in check only select moves which allow king to escape check
-        if self.is_targeted(self.king_positions[self.current_player as usize], false) {
-            let mut moves = ArrayVec::new();
-            for list in piece_moves {
-                for item in list.iter() {
-                    self.push(*item);
-                    self.current_player = self.current_player.the_other();
-                    if !self.is_targeted(self.king_positions[self.current_player as usize], false) {
-                        unsafe {
-                            moves.push_unchecked(*item);
-                        }
-                    }
-                    self.current_player = self.current_player.the_other();
-                    self.pop();
-                }
-            }
-
-            return moves;
-        }
-
+        // Only select moves which don't put king in check
         let mut moves = ArrayVec::new();
+        let player = self.current_player;
         for list in piece_moves {
             for item in list.iter() {
+                self.push(*item);
+                if !self.is_targeted(self.king_positions[player as usize]) {
                 unsafe {
                     moves.push_unchecked(*item);
                 }
+                }
+                self.pop();
             }
         }
 
         moves
     }
 
-    // Returns if position is targeted by enemy pieces (including by the king or not,
-    // this is required for finding valid moves for the king)
-    pub fn is_targeted(&self, position: Position, including_king: bool) -> bool {
-        // This function should only be called with valid positions
-        if self.get_position(position).is_none() {
-            panic!();
-        }
+    // Returns if piece is targeted by enemy pieces
+    pub fn is_targeted(&self, position: Position) -> bool {
+        // This function should only be called with valid pieces
+        let player = self.get_position(position).unwrap().unwrap().owner;
 
-        // When finding is a move is valid for the king we need to check
-        // if it is targeted by a non-king piece, so do this conditionally
-        if including_king {
             for delta in [
                 (1, 0),
                 (0, 1),
@@ -217,10 +330,9 @@ impl ChessGame {
             {
                 if let Some(place) = self.get_position(position + delta) {
                     if place.is_some_and(|piece| {
-                        piece.owner != self.current_player && piece.piece_type == PieceTypes::King
+                    piece.owner != player && piece.piece_type == PieceTypes::King
                     }) {
                         return true;
-                    }
                 }
             }
         }
@@ -241,7 +353,7 @@ impl ChessGame {
         {
             if let Some(place) = self.get_position(position + delta) {
                 if place.is_some_and(|piece| {
-                    piece.owner != self.current_player && piece.piece_type == PieceTypes::Knight
+                    piece.owner != player && piece.piece_type == PieceTypes::Knight
                 }) {
                     return true;
                 }
@@ -249,18 +361,18 @@ impl ChessGame {
         }
 
         // Verify for pawns
-        match self.current_player {
+        match player {
             Players::White => {
                 if let Some(place) = self.get_position(position + Position::new(1, 1)) {
                     if place.is_some_and(|piece| {
-                        piece.owner != self.current_player && piece.piece_type == PieceTypes::Pawn
+                        piece.owner != player && piece.piece_type == PieceTypes::Pawn
                     }) {
                         return true;
                     }
                 }
                 if let Some(place) = self.get_position(position + Position::new(1, -1)) {
                     if place.is_some_and(|piece| {
-                        piece.owner != self.current_player && piece.piece_type == PieceTypes::Pawn
+                        piece.owner != player && piece.piece_type == PieceTypes::Pawn
                     }) {
                         return true;
                     }
@@ -269,14 +381,14 @@ impl ChessGame {
             Players::Black => {
                 if let Some(place) = self.get_position(position + Position::new(-1, 1)) {
                     if place.is_some_and(|piece| {
-                        piece.owner != self.current_player && piece.piece_type == PieceTypes::Pawn
+                        piece.owner != player && piece.piece_type == PieceTypes::Pawn
                     }) {
                         return true;
                     }
                 }
                 if let Some(place) = self.get_position(position + Position::new(-1, -1)) {
                     if place.is_some_and(|piece| {
-                        piece.owner != self.current_player && piece.piece_type == PieceTypes::Pawn
+                        piece.owner != player && piece.piece_type == PieceTypes::Pawn
                     }) {
                         return true;
                     }
@@ -291,7 +403,7 @@ impl ChessGame {
                 for delta in $x {
                     if let Some(place) = self.get_position(position + delta) {
                         if let Some(piece) = place  {
-                            if piece.owner != self.current_player &&
+                            if piece.owner != player &&
                                 (piece.piece_type == $piece_type1 || piece.piece_type == $piece_type2) {
                                 return true
                             }
