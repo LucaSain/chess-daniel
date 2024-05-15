@@ -91,8 +91,8 @@ impl ChessGame {
             move_stack: Vec::with_capacity(100),
             has_castled: [false; 2],
             king_positions: [
-                Position::new(0, 4),
-                Position::new(7, 4),
+                Position::new(0, 4).unwrap(),
+                Position::new(7, 4).unwrap(),
             ],
             current_player: Players::White,
         };
@@ -100,17 +100,23 @@ impl ChessGame {
         game
     }
 
-    pub fn get_position(&self, position: Position) -> Option<&Option<Piece>> {
-        self.board
-            .get(position.row() as usize)
-            .and_then(|row| row.get(position.col() as usize))
+    pub fn get_position(&self, position: Position) -> &Option<Piece> {
+        // position is always valid
+        unsafe {
+            self.board
+                .get_unchecked(position.row() as usize)
+                .get_unchecked(position.col() as usize)
+        }
     }
     // pub for debugging
     pub fn set_position(&mut self, position: Position, new_place: Option<Piece>) {
-        self.board.get_mut(position.row() as usize).and_then(|row| {
-            row.get_mut(position.col() as usize)
-                .map(|place| *place = new_place)
-        });
+        // position is always valid
+        unsafe {
+            *self
+                .board
+                .get_unchecked_mut(position.row() as usize)
+                .get_unchecked_mut(position.col() as usize) = new_place;
+        }
     }
 
     pub fn push(&mut self, _move: Move) {
@@ -143,18 +149,27 @@ impl ChessGame {
                     Players::Black => 7,
                 };
 
-                self.set_position(Position::new(row, 0), None);
+                let (old_king, new_king, old_rook, new_rook) = unsafe {
+                    (
+                        Position::new_unsafe(row, 4),
+                        Position::new_unsafe(row, 2),
+                        Position::new_unsafe(row, 0),
+                        Position::new_unsafe(row, 3),
+                    )
+                };
+
+                self.set_position(old_rook, None);
+                self.set_position(old_king, None);
                 self.set_position(
-                    Position::new(row, 3),
+                    new_rook,
                     Some(Piece {
                         piece_type: PieceTypes::Rook,
                         owner,
                     }),
                 );
 
-                self.set_position(Position::new(row, 4), None);
                 self.set_position(
-                    Position::new(row, 2),
+                    new_king,
                     Some(Piece {
                         piece_type: PieceTypes::King,
                         owner,
@@ -162,7 +177,7 @@ impl ChessGame {
                 );
 
                 self.has_castled[self.current_player as usize] = true;
-                self.king_positions[self.current_player as usize] = Position::new(row, 2);
+                self.king_positions[self.current_player as usize] = new_king;
             }
             Move::CastlingShort { owner } => {
                 let row = match owner {
@@ -170,18 +185,27 @@ impl ChessGame {
                     Players::Black => 7,
                 };
 
-                self.set_position(Position::new(row, 7), None);
+                let (old_king, new_king, old_rook, new_rook) = unsafe {
+                    (
+                        Position::new_unsafe(row, 4),
+                        Position::new_unsafe(row, 6),
+                        Position::new_unsafe(row, 7),
+                        Position::new_unsafe(row, 5),
+                    )
+                };
+
+                self.set_position(old_rook, None);
+                self.set_position(old_king, None);
                 self.set_position(
-                    Position::new(row, 5),
+                    new_rook,
                     Some(Piece {
                         piece_type: PieceTypes::Rook,
                         owner,
                     }),
                 );
 
-                self.set_position(Position::new(row, 4), None);
                 self.set_position(
-                    Position::new(row, 6),
+                    new_king,
                     Some(Piece {
                         piece_type: PieceTypes::King,
                         owner,
@@ -189,7 +213,7 @@ impl ChessGame {
                 );
 
                 self.has_castled[self.current_player as usize] = true;
-                self.king_positions[self.current_player as usize] = Position::new(row, 6)
+                self.king_positions[self.current_player as usize] = new_king;
             }
         };
 
@@ -212,7 +236,13 @@ impl ChessGame {
             }
             #[rustfmt::skip]
             Move::Promovation { owner, start, end, captured_piece } => {
-                self.set_position(start, Some(Piece { piece_type: PieceTypes::Pawn, owner }));
+                self.set_position(
+                    start,
+                    Some(Piece {
+                        piece_type: PieceTypes::Pawn,
+                        owner
+                    })
+                );
                 self.set_position(end, captured_piece);
             }
             Move::CastlingLong { owner } => {
@@ -221,26 +251,35 @@ impl ChessGame {
                     Players::Black => 7,
                 };
 
+                let (old_king, new_king, old_rook, new_rook) = unsafe {
+                    (
+                        Position::new_unsafe(row, 4),
+                        Position::new_unsafe(row, 2),
+                        Position::new_unsafe(row, 0),
+                        Position::new_unsafe(row, 3),
+                    )
+                };
+
+                self.set_position(new_rook, None);
+                self.set_position(new_king, None);
                 self.set_position(
-                    Position::new(row, 0),
+                    old_rook,
                     Some(Piece {
                         piece_type: PieceTypes::Rook,
                         owner,
                     }),
                 );
-                self.set_position(Position::new(row, 3), None);
 
                 self.set_position(
-                    Position::new(row, 4),
+                    old_king,
                     Some(Piece {
                         piece_type: PieceTypes::King,
                         owner,
                     }),
                 );
-                self.set_position(Position::new(row, 2), None);
 
                 self.has_castled[owner as usize] = false;
-                self.king_positions[owner as usize] = Position::new(row, 4);
+                self.king_positions[owner as usize] = old_king;
             }
             Move::CastlingShort { owner } => {
                 let row = match owner {
@@ -248,26 +287,35 @@ impl ChessGame {
                     Players::Black => 7,
                 };
 
+                let (old_king, new_king, old_rook, new_rook) = unsafe {
+                    (
+                        Position::new_unsafe(row, 4),
+                        Position::new_unsafe(row, 6),
+                        Position::new_unsafe(row, 7),
+                        Position::new_unsafe(row, 5),
+                    )
+                };
+
+                self.set_position(new_rook, None);
+                self.set_position(new_king, None);
                 self.set_position(
-                    Position::new(row, 7),
+                    old_rook,
                     Some(Piece {
                         piece_type: PieceTypes::Rook,
                         owner,
                     }),
                 );
-                self.set_position(Position::new(row, 5), None);
 
                 self.set_position(
-                    Position::new(row, 4),
+                    old_king,
                     Some(Piece {
                         piece_type: PieceTypes::King,
                         owner,
                     }),
                 );
-                self.set_position(Position::new(row, 6), None);
 
                 self.has_castled[owner as usize] = false;
-                self.king_positions[owner as usize] = Position::new(row, 4)
+                self.king_positions[owner as usize] = old_king;
             }
         };
 
@@ -282,7 +330,7 @@ impl ChessGame {
             .flat_map(|(r, v)| {
                 v.iter()
                     .enumerate()
-                    .map(move |(c, v)| (Position::new(r as i8, c as i8), v))
+                    .map(move |(c, v)| (unsafe { Position::new_unsafe(r as i8, c as i8) }, v))
             })
             .filter_map(|(position, place)| {
                 place
@@ -317,8 +365,9 @@ impl ChessGame {
     // Returns if piece is targeted by enemy pieces
     pub fn is_targeted(&self, position: Position) -> bool {
         // This function should only be called with valid pieces
-        let player = self.get_position(position).unwrap().unwrap().owner;
+        let player = self.get_position(position).unwrap().owner;
 
+        // Verifiy for kings
         for delta in [
             (1, 0),
             (0, 1),
@@ -329,11 +378,10 @@ impl ChessGame {
             (1, -1),
             (-1, -1),
         ]
-        .iter()
-        .map(|(row, col)| Position::new(*row, *col))
+        .into_iter()
         {
-            if let Some(place) = self.get_position(position + delta) {
-                if place.is_some_and(|piece| {
+            if let Some(new_pos) = position.add(delta) {
+                if self.get_position(new_pos).is_some_and(|piece| {
                     piece.owner != player && piece.piece_type == PieceTypes::King
                 }) {
                     return true;
@@ -352,11 +400,10 @@ impl ChessGame {
             (-1, 2),
             (2, -1),
         ]
-        .iter()
-        .map(|(row, col)| Position::new(*row, *col))
+        .into_iter()
         {
-            if let Some(place) = self.get_position(position + delta) {
-                if place.is_some_and(|piece| {
+            if let Some(new_pos) = position.add(delta) {
+                if self.get_position(new_pos).is_some_and(|piece| {
                     piece.owner != player && piece.piece_type == PieceTypes::Knight
                 }) {
                     return true;
@@ -367,15 +414,15 @@ impl ChessGame {
         // Verify for pawns
         match player {
             Players::White => {
-                if let Some(place) = self.get_position(position + Position::new(1, 1)) {
-                    if place.is_some_and(|piece| {
+                if let Some(new_pos) = position.add((1, 1)) {
+                    if self.get_position(new_pos).is_some_and(|piece| {
                         piece.owner != player && piece.piece_type == PieceTypes::Pawn
                     }) {
                         return true;
                     }
                 }
-                if let Some(place) = self.get_position(position + Position::new(1, -1)) {
-                    if place.is_some_and(|piece| {
+                if let Some(new_pos) = position.add((1, -1)) {
+                    if self.get_position(new_pos).is_some_and(|piece| {
                         piece.owner != player && piece.piece_type == PieceTypes::Pawn
                     }) {
                         return true;
@@ -383,15 +430,15 @@ impl ChessGame {
                 }
             }
             Players::Black => {
-                if let Some(place) = self.get_position(position + Position::new(-1, 1)) {
-                    if place.is_some_and(|piece| {
+                if let Some(new_pos) = position.add((-1, 1)) {
+                    if self.get_position(new_pos).is_some_and(|piece| {
                         piece.owner != player && piece.piece_type == PieceTypes::Pawn
                     }) {
                         return true;
                     }
                 }
-                if let Some(place) = self.get_position(position + Position::new(-1, -1)) {
-                    if place.is_some_and(|piece| {
+                if let Some(new_pos) = position.add((-1, -1)) {
+                    if self.get_position(new_pos).is_some_and(|piece| {
                         piece.owner != player && piece.piece_type == PieceTypes::Pawn
                     }) {
                         return true;
@@ -405,8 +452,8 @@ impl ChessGame {
             ( $piece_type1:expr, $piece_type2:expr, $( $x:expr ),* ) => {
                 $(
                 for delta in $x {
-                    if let Some(place) = self.get_position(position + delta) {
-                        if let Some(piece) = place  {
+                    if let Some(new_pos) = position.add(delta) {
+                        if let Some(piece) = self.get_position(new_pos)  {
                             if piece.owner != player &&
                                 (piece.piece_type == $piece_type1 || piece.piece_type == $piece_type2) {
                                 return true
@@ -425,20 +472,20 @@ impl ChessGame {
         search_enemies_loops![
             PieceTypes::Rook,
             PieceTypes::Queen,
-            (1..).map(|x| Position::new(0, x)),
-            (1..).map(|x| Position::new(0, -x)),
-            (1..).map(|x| Position::new(x, 0)),
-            (1..).map(|x| Position::new(-x, 0))
+            (1..).map(|x| (0, x)),
+            (1..).map(|x| (0, -x)),
+            (1..).map(|x| (x, 0)),
+            (1..).map(|x| (-x, 0))
         ];
 
         // Verify diagonals for bishops/queens
         search_enemies_loops![
             PieceTypes::Bishop,
             PieceTypes::Queen,
-            (1..).map(|x| Position::new(x, x)),
-            (1..).map(|x| Position::new(-x, -x)),
-            (1..).map(|x| Position::new(x, -x)),
-            (1..).map(|x| Position::new(-x, x))
+            (1..).map(|x| (x, x)),
+            (1..).map(|x| (-x, -x)),
+            (1..).map(|x| (x, -x)),
+            (1..).map(|x| (-x, x))
         ];
 
         false
@@ -555,15 +602,11 @@ impl ChessGame {
         // self.current_player = original_player;
         for i in 0..8 {
             for j in 0..8 {
-                let pos = Position::new(i, j);
-                unsafe {
-                    sum += self
-                        .board
-                        .get_unchecked(i as usize)
-                        .get_unchecked(j as usize)
-                        .map(|piece| piece.score(pos))
-                        .unwrap_or(0.0);
-                }
+                let pos = unsafe { Position::new_unsafe(i, j) };
+                sum += self
+                    .get_position(pos)
+                    .map(|piece| piece.score(pos))
+                    .unwrap_or(0.0);
             }
         }
         sum
