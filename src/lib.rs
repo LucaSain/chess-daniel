@@ -474,12 +474,18 @@ impl std::fmt::Debug for Move {
 impl std::fmt::Debug for ChessGame {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "\n")?;
-        self.board.iter().try_for_each(|row| -> std::fmt::Result {
+        self.board
+            .iter()
+            .enumerate()
+            .rev()
+            .try_for_each(|(i, row)| -> std::fmt::Result {
+                write!(f, "{} ", i)?;
             row.iter().try_for_each(|place| -> std::fmt::Result {
                 write!(f, "|{}", place.map(|piece| piece.as_char()).unwrap_or(' '))
             })?;
             write!(f, "|\n")
-        })
+            })?;
+        write!(f, "\n   0 1 2 3 4 5 6 7\n")
     }
 }
 
