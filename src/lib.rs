@@ -39,13 +39,13 @@ pub struct ChessGame {
     pub king_positions: [Position; 2], // for finding if it is in check
 }
 
-mod mod_piece;
-
 use arrayvec::ArrayVec;
-pub use mod_piece::*;
 
-mod mod_position;
-pub use mod_position::*;
+mod piece;
+pub use piece::*;
+
+mod position;
+pub use position::*;
 
 impl Players {
     fn the_other(&self) -> Self {
