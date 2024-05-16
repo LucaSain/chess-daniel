@@ -358,4 +358,15 @@ impl Piece {
             },
         }
     }
+
+    pub fn as_char_ascii(&self) -> &str {
+        match self.piece_type {
+            PieceTypes::King => &"K",
+            PieceTypes::Queen => &"Q",
+            PieceTypes::Rook => &"R",
+            PieceTypes::Bishop => &"B",
+            PieceTypes::Knight => &"N",
+            PieceTypes::Pawn => &"",
+        }
+    }
 }

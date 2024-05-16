@@ -512,6 +512,62 @@ impl ChessGame {
 
         false
     }
+
+    pub fn get_pgn(&self) -> String {
+        let moves: Vec<_> = self
+            .move_stack
+            .iter()
+            .map(|_move| match _move {
+                Move::Normal {
+                    piece,
+                    start,
+                    end,
+                    captured_piece,
+                } => {
+                    let mut s = String::new();
+                    s.push_str(piece.as_char_ascii());
+                    s.push(((start.col()) as u8 + b'a') as char);
+                    if captured_piece.is_some() {
+                        s.push('x');
+                    }
+                    s.push(((end.col()) as u8 + b'a') as char);
+                    s.push_str((end.row() + 1).to_string().as_str());
+                    s
+                }
+                Move::CastlingShort { .. } => String::from_str("O-O").unwrap(),
+                Move::CastlingLong { .. } => String::from_str("O-O-O").unwrap(),
+                Move::Promovation {
+                    end,
+                    captured_piece,
+                    ..
+                } => {
+                    let mut s = String::new();
+                    if captured_piece.is_some() {
+                        s.push('x');
+                    }
+                    s.push(((end.col()) as u8 + b'a') as char);
+                    s.push_str((end.row() + 1).to_string().as_str());
+                    s.push('=');
+                    s.push('Q');
+                    s
+                }
+            })
+            .collect();
+
+        let mut s = String::new();
+
+        for (i, _move) in moves.iter().enumerate() {
+            if i % 2 == 0 {
+                s.push_str((i / 2 + 1).to_string().as_str());
+                s.push('.');
+                s.push(' ');
+            }
+            s.push_str(_move.as_str());
+            s.push(' ');
+        }
+
+        s
+    }
 }
 
 impl std::fmt::Debug for Piece {
