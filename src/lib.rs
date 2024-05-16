@@ -40,6 +40,8 @@ pub struct ChessGame {
     pub score: f64,
 }
 
+use std::str::FromStr;
+
 use arrayvec::ArrayVec;
 
 mod piece;
