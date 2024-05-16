@@ -71,8 +71,7 @@ impl Piece {
         }
     }
 
-    pub fn get_moves(&self, game: &ChessGame, pos: Position) -> ArrayVec<Move, 27> {
-        let mut moves = ArrayVec::new();
+    pub fn get_moves(&self, moves: &mut ArrayVec<Move, 128>, game: &ChessGame, pos: Position) {
         match self.piece_type {
             PieceTypes::Pawn => {
                 let first_row = match self.owner {
@@ -337,8 +336,6 @@ impl Piece {
                 ];
             }
         }
-
-        moves
     }
 
     pub fn as_char(&self) -> char {

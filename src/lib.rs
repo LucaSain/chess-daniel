@@ -356,8 +356,15 @@ impl ChessGame {
     }
 
     pub fn get_moves(&mut self) -> ArrayVec<Move, 128> {
-        let piece_moves: ArrayVec<ArrayVec<Move, 27>, 32> = self
-            .board
+        let mut moves = ArrayVec::new();
+        let king_place = self.get_position(self.king_positions[self.current_player as usize]);
+        if king_place.is_none()
+            || king_place.is_some_and(|piece| piece.piece_type != PieceTypes::King)
+        {
+            // no available moves;
+            return moves;
+        }
+        self.board
             .iter()
             .enumerate()
             .flat_map(|(r, v)| {
@@ -370,27 +377,9 @@ impl ChessGame {
                     .filter(|piece| piece.owner == self.current_player)
                     .map(|_| (position, place))
             })
-            .map(|(position, place)| {
-                place
-                    .map(|piece| piece.get_moves(self, position))
-                    .unwrap_or_default()
-            })
-            .collect();
-
-        // Only select moves which don't put king in check
-        let mut moves = ArrayVec::new();
-        let player = self.current_player;
-        for list in piece_moves {
-            for item in list.iter() {
-                self.real_push(*item, false);
-                if !self.is_targeted(self.king_positions[player as usize]) {
-                    unsafe {
-                        moves.push_unchecked(*item);
-                    }
-                }
-                self.real_pop(false);
-            }
-        }
+            .for_each(|(position, place)| {
+                place.map(|piece| piece.get_moves(&mut moves, self, position));
+            });
 
         moves
     }
