@@ -98,12 +98,12 @@ impl Piece {
                     Players::Black => (-2, 0),
                 };
 
-                // First moves always exist
                 unsafe {
                     if pos.row() == first_row
                         && game.get_position(pos.add_unsafe(normal_delta)).is_none()
                         && game.get_position(pos.add_unsafe(first_row_delta)).is_none()
                     {
+                        // First moves always exist
                         moves.push_unchecked(Move::Normal {
                             piece: *self,
                             start: pos,
