@@ -1,7 +1,6 @@
 use arrayvec::ArrayVec;
 
 use super::{ChessGame, Move, Players, Position};
-use std::intrinsics::fmul_fast;
 
 #[derive(PartialEq, Eq, Clone, Copy, Debug, Hash)]
 pub enum PieceTypes {
@@ -51,28 +50,27 @@ macro_rules! find_moves_loops {
 }
 
 impl Piece {
-    pub fn score(&self, pos: Position) -> f64 {
+    pub fn score(&self, pos: Position) -> i32 {
         unsafe {
-            let piece_score = match self.piece_type {
-                PieceTypes::Pawn => &[0.0, 0.9, 1.0, 1.15, 1.18, 1.2, 1.23, 1.3],
-                PieceTypes::Knight => &[3.0, 3.0, 3.3, 3.31, 3.33, 3.35, 3.35, 3.4],
-                PieceTypes::Bishop => &[3.1, 3.1, 3.15, 3.23, 3.34, 3.38, 3.39, 3.4],
-                PieceTypes::Rook => &[5.0, 5.0, 5.1, 5.1, 5.1, 5.1, 5.2, 5.3],
-                PieceTypes::Queen => &[9.0, 9.05, 9.1, 9.2, 9.2, 9.2, 9.2, 9.2],
-                PieceTypes::King => &[1000.0, 999.6, 999.5, 999.5, 999.5, 999.5, 999.5, 999.5],
+            let piece_score = *match self.piece_type {
+                PieceTypes::Pawn => &[0, 90, 100, 115, 118, 120, 123, 130],
+                PieceTypes::Knight => &[300, 300, 330, 331, 333, 335, 335, 340],
+                PieceTypes::Bishop => &[310, 310, 315, 323, 334, 338, 339, 340],
+                PieceTypes::Rook => &[500, 500, 510, 510, 510, 510, 520, 530],
+                PieceTypes::Queen => &[900, 905, 910, 920, 920, 920, 920, 920],
+                PieceTypes::King => &[100000, 99960, 99950, 99950, 99950, 99950, 99950, 99950],
             }
             .get_unchecked(match self.owner {
                 Players::White => pos.row(),
                 Players::Black => 7 - pos.row(),
             } as usize);
             let col_score = match self.piece_type {
-                PieceTypes::King => 1.0,
-                _ => *[0.96, 0.97, 0.98, 1.0, 1.0, 0.98, 0.97, 0.96]
-                    .get_unchecked(pos.col() as usize),
+                PieceTypes::King => 100,
+                _ => *[96, 97, 98, 100, 100, 98, 97, 96].get_unchecked(pos.col() as usize),
             };
             match self.owner {
-                Players::White => fmul_fast(*piece_score, col_score),
-                Players::Black => -fmul_fast(*piece_score, col_score),
+                Players::White => piece_score * col_score,
+                Players::Black => -piece_score * col_score,
             }
         }
     }

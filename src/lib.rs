@@ -1,6 +1,3 @@
-#![feature(core_intrinsics)]
-use std::intrinsics::{fadd_fast, fsub_fast};
-
 use std::str::FromStr;
 
 use arrayvec::ArrayVec;
@@ -50,7 +47,7 @@ pub struct ChessGame {
     pub current_player: Players,
     pub has_castled: [bool; 2],
     pub king_positions: [Position; 2], // for finding if it is in check
-    pub score: f64,
+    pub score: i32,
 }
 
 impl Players {
@@ -101,7 +98,7 @@ impl ChessGame {
                 Position::new(7, 4).unwrap(),
             ],
             current_player: Players::White,
-            score: 0.0,
+            score: 0,
         };
 
         game
@@ -124,15 +121,16 @@ impl ChessGame {
                 .board
                 .get_unchecked_mut(position.row() as usize)
                 .get_unchecked_mut(position.col() as usize);
-            self.score = fsub_fast(
-                self.score,
-                place.map(|piece| piece.score(position)).unwrap_or_default(),
-            );
+
+            if let Some(piece) = place {
+                self.score -= piece.score(position);
+            }
+
             *place = new_place;
-            self.score = fadd_fast(
-                self.score,
-                place.map(|piece| piece.score(position)).unwrap_or_default(),
-            );
+
+            if let Some(piece) = place {
+                self.score += piece.score(position);
+            }
         }
     }
 
