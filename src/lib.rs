@@ -136,12 +136,16 @@ impl ChessGame {
         }
     }
 
-    pub fn push(&mut self, _move: Move) {
+    pub fn push_history(&mut self, _move: Move) {
         unsafe {
             debug_assert!(!self.move_stack.is_full());
             self.move_stack.push_unchecked(_move);
         };
 
+        self.push(_move);
+    }
+
+    pub fn push(&mut self, _move: Move) {
         match _move {
             #[rustfmt::skip]
             Move::Normal { piece, start, end, .. } => {
@@ -248,13 +252,16 @@ impl ChessGame {
         self.current_player = self.current_player.the_other();
     }
 
-    pub fn pop(&mut self) -> Move {
-        let _move = unsafe {
-            let _move_option = self.move_stack.pop();
-            debug_assert!(_move_option.is_some());
-            _move_option.unwrap_unchecked()
-        };
+    pub fn pop_history(&mut self) -> Option<Move> {
+        let _move = self.move_stack.pop();
+        _move.inspect(|_move| {
+            self.pop(*_move);
+        });
 
+        _move
+    }
+
+    pub fn pop(&mut self, _move: Move) {
         self.current_player = self.current_player.the_other();
 
         match _move {
@@ -359,8 +366,6 @@ impl ChessGame {
                 self.king_positions[owner as usize] = old_king;
             }
         };
-
-        _move
     }
 
     pub fn get_moves(&mut self) -> ArrayVec<Move, 128> {
