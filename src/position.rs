@@ -1,4 +1,4 @@
-#[derive(PartialEq, Eq, Clone, Copy, Debug)]
+#[derive(PartialEq, Eq, Clone, Copy, Debug, Hash)]
 // This struct should always contain a valid position
 // That is, values for row and col are always in 0..=7
 pub struct Position(i8, i8); // rand, coloana : row, col

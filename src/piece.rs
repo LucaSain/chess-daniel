@@ -1,8 +1,9 @@
 use arrayvec::ArrayVec;
 
 use super::{ChessGame, Move, Players, Position};
+use std::intrinsics::fmul_fast;
 
-#[derive(PartialEq, Eq, Clone, Copy, Debug)]
+#[derive(PartialEq, Eq, Clone, Copy, Debug, Hash)]
 pub enum PieceTypes {
     Pawn,
     Rook,
@@ -12,7 +13,7 @@ pub enum PieceTypes {
     King,
 }
 
-#[derive(Clone, Copy, PartialEq)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash)]
 pub struct Piece {
     pub piece_type: PieceTypes,
     pub owner: Players,
@@ -52,23 +53,26 @@ macro_rules! find_moves_loops {
 impl Piece {
     pub fn score(&self, pos: Position) -> f64 {
         unsafe {
-            let score = match self.piece_type {
-                PieceTypes::Pawn => &[0.0, 0.9, 1.05, 1.15, 1.18, 1.2, 1.23, 1.3],
+            let piece_score = match self.piece_type {
+                PieceTypes::Pawn => &[0.0, 0.9, 1.0, 1.15, 1.18, 1.2, 1.23, 1.3],
                 PieceTypes::Knight => &[3.0, 3.0, 3.3, 3.31, 3.33, 3.35, 3.35, 3.4],
                 PieceTypes::Bishop => &[3.1, 3.1, 3.15, 3.23, 3.34, 3.38, 3.39, 3.4],
                 PieceTypes::Rook => &[5.0, 5.0, 5.1, 5.1, 5.1, 5.1, 5.2, 5.3],
-                PieceTypes::Queen => &[9.0, 9.05, 9.1, 9.2, 9.2, 9.1, 9.2, 9.4],
-                PieceTypes::King => &[1000.0, 999.9, 999.8, 999.7, 999.6, 999.5, 999.5, 999.5],
+                PieceTypes::Queen => &[9.0, 9.05, 9.1, 9.2, 9.2, 9.2, 9.2, 9.2],
+                PieceTypes::King => &[1000.0, 999.6, 999.5, 999.5, 999.5, 999.5, 999.5, 999.5],
             }
             .get_unchecked(match self.owner {
                 Players::White => pos.row(),
                 Players::Black => 7 - pos.row(),
-            } as usize)
-                * [0.96, 0.97, 0.98, 1.0, 1.0, 0.98, 0.97, 0.96].get_unchecked(pos.col() as usize);
-
+            } as usize);
+            let col_score = match self.piece_type {
+                PieceTypes::King => 1.0,
+                _ => *[0.96, 0.97, 0.98, 1.0, 1.0, 0.98, 0.97, 0.96]
+                    .get_unchecked(pos.col() as usize),
+            };
             match self.owner {
-                Players::White => score,
-                Players::Black => -score,
+                Players::White => fmul_fast(*piece_score, col_score),
+                Players::Black => -fmul_fast(*piece_score, col_score),
             }
         }
     }
@@ -102,14 +106,12 @@ impl Piece {
                         && game.get_position(pos.add_unsafe(normal_delta)).is_none()
                         && game.get_position(pos.add_unsafe(first_row_delta)).is_none()
                     {
-                        unsafe {
-                            moves.push_unchecked(Move::Normal {
-                                piece: *self,
-                                start: pos,
-                                end: pos.add_unsafe(first_row_delta),
-                                captured_piece: None,
-                            });
-                        }
+                        moves.push_unchecked(Move::Normal {
+                            piece: *self,
+                            start: pos,
+                            end: pos.add_unsafe(first_row_delta),
+                            captured_piece: None,
+                        });
                     }
                 }
 

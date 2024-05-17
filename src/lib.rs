@@ -1,10 +1,23 @@
-#[derive(PartialEq, Eq, Clone, Copy, Debug)]
+#![feature(core_intrinsics)]
+use std::intrinsics::{fadd_fast, fsub_fast};
+
+use std::str::FromStr;
+
+use arrayvec::ArrayVec;
+
+mod piece;
+pub use piece::*;
+
+mod position;
+pub use position::*;
+
+#[derive(PartialEq, Eq, Clone, Copy, Debug, Hash)]
 pub enum Players {
     White,
     Black,
 }
 
-#[derive(Clone, Copy)]
+#[derive(PartialEq, Eq, Clone, Copy, Hash)]
 pub enum Move {
     Normal {
         piece: Piece,
@@ -33,22 +46,12 @@ pub enum Move {
 // TODO: remove pub
 pub struct ChessGame {
     pub board: [[Option<Piece>; 8]; 8],
-    pub move_stack: Vec<Move>, // debug
+    pub move_stack: ArrayVec<Move, 1000>, // debug
     pub current_player: Players,
     pub has_castled: [bool; 2],
     pub king_positions: [Position; 2], // for finding if it is in check
     pub score: f64,
 }
-
-use std::str::FromStr;
-
-use arrayvec::ArrayVec;
-
-mod piece;
-pub use piece::*;
-
-mod position;
-pub use position::*;
 
 impl Players {
     fn the_other(&self) -> Self {
@@ -91,7 +94,7 @@ impl ChessGame {
                     Some(Piece {piece_type: PieceTypes::Rook, owner: Players::Black}),
                 ],
             ],
-            move_stack: Vec::with_capacity(100),
+            move_stack: ArrayVec::new(),
             has_castled: [false; 2],
             king_positions: [
                 Position::new(0, 4).unwrap(),
@@ -121,14 +124,23 @@ impl ChessGame {
                 .board
                 .get_unchecked_mut(position.row() as usize)
                 .get_unchecked_mut(position.col() as usize);
-            self.score -= place.map(|piece| piece.score(position)).unwrap_or_default();
+            self.score = fsub_fast(
+                self.score,
+                place.map(|piece| piece.score(position)).unwrap_or_default(),
+            );
             *place = new_place;
-            self.score += place.map(|piece| piece.score(position)).unwrap_or_default();
+            self.score = fadd_fast(
+                self.score,
+                place.map(|piece| piece.score(position)).unwrap_or_default(),
+            );
         }
     }
 
     pub fn push(&mut self, _move: Move) {
-        self.move_stack.push(_move);
+        unsafe {
+            debug_assert!(!self.move_stack.is_full());
+            self.move_stack.push_unchecked(_move);
+        };
 
         match _move {
             #[rustfmt::skip]
@@ -237,7 +249,12 @@ impl ChessGame {
     }
 
     pub fn pop(&mut self) -> Move {
-        let _move = self.move_stack.pop().expect("Tried to pop a new game");
+        let _move = unsafe {
+            let _move_option = self.move_stack.pop();
+            debug_assert!(_move_option.is_some());
+            _move_option.unwrap_unchecked()
+        };
+
         self.current_player = self.current_player.the_other();
 
         match _move {
@@ -355,22 +372,19 @@ impl ChessGame {
             // no available moves;
             return moves;
         }
-        self.board
-            .iter()
-            .enumerate()
-            .flat_map(|(r, v)| {
-                v.iter()
-                    .enumerate()
-                    .map(move |(c, v)| (unsafe { Position::new_unsafe(r as i8, c as i8) }, v))
-            })
-            .filter_map(|(position, place)| {
-                place
-                    .filter(|piece| piece.owner == self.current_player)
-                    .map(|_| (position, place))
-            })
-            .for_each(|(position, place)| {
-                place.map(|piece| piece.get_moves(&mut moves, self, position));
-            });
+
+        for r in 0..8 {
+            for c in 0..8 {
+                unsafe {
+                    if let Some(piece) = self.board.get_unchecked(r).get_unchecked(c) {
+                        if piece.owner == self.current_player {
+                            let pos = Position::new_unsafe(r as i8, c as i8);
+                            piece.get_moves(&mut moves, self, pos);
+                        }
+                    }
+                }
+            }
+        }
 
         moves
     }
