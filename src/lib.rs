@@ -200,10 +200,6 @@ impl ChessGame {
                     }),
                 );
 
-                self.score += match owner {
-                    Players::White => 0.3,
-                    Players::Black => -0.3,
-                };
                 self.has_castled[self.current_player as usize] = true;
                 self.king_positions[self.current_player as usize] = new_king;
             }
@@ -240,10 +236,6 @@ impl ChessGame {
                     }),
                 );
 
-                self.score += match owner {
-                    Players::White => 0.3,
-                    Players::Black => -0.3,
-                };
                 self.has_castled[self.current_player as usize] = true;
                 self.king_positions[self.current_player as usize] = new_king;
             }
@@ -318,10 +310,6 @@ impl ChessGame {
                     }),
                 );
 
-                self.score -= match owner {
-                    Players::White => 0.3,
-                    Players::Black => -0.3,
-                };
                 self.has_castled[owner as usize] = false;
                 self.king_positions[owner as usize] = old_king;
             }
@@ -358,10 +346,6 @@ impl ChessGame {
                     }),
                 );
 
-                self.score -= match owner {
-                    Players::White => 0.3,
-                    Players::Black => -0.3,
-                };
                 self.has_castled[owner as usize] = false;
                 self.king_positions[owner as usize] = old_king;
             }
