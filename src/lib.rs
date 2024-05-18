@@ -13,8 +13,8 @@ pub enum Players {
     White,
     Black,
 }
-
 #[derive(PartialEq, Eq, Clone, Copy, Hash)]
+#[repr(align(8))]
 pub enum Move {
     Normal {
         piece: Piece,

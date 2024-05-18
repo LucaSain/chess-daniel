@@ -1,6 +1,7 @@
 #[derive(PartialEq, Eq, Clone, Copy, Debug, Hash)]
 // This struct should always contain a valid position
 // That is, values for row and col are always in 0..=7
+#[repr(align(2))]
 pub struct Position(i8, i8); // rand, coloana : row, col
 impl Position {
     pub fn new(row: i8, col: i8) -> Option<Self> {
