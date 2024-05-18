@@ -13,7 +13,7 @@ impl Position {
     }
 
     // Same as self.new, but unchecked
-    // Caller must guarantee that row and col are valid
+    // SAFETY: Caller must guarantee that row and col are valid
     pub unsafe fn new_unsafe(row: i8, col: i8) -> Self {
         debug_assert!(0 <= row && row <= 7 && 0 <= col && col <= 7);
         Position(row, col)
@@ -38,7 +38,7 @@ impl Position {
     }
 
     // Same as self.add, but unchecked
-    // Caller must guarantee that return value is valid
+    // SAFETY: Caller must guarantee that return value is valid
     pub unsafe fn add_unsafe(&self, delta: (i8, i8)) -> Self {
         let row = self.0 + delta.0;
         let col = self.1 + delta.1;
