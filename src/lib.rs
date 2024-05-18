@@ -347,12 +347,13 @@ impl ChessGame {
         };
     }
 
-    pub fn get_moves(&mut self) -> ArrayVec<Move, 128> {
-        let mut moves = ArrayVec::new();
+    pub fn get_moves(&mut self, mut moves: &mut ArrayVec<Move, 128>) {
+        // let mut moves = ArrayVec::new();
         let king_place = self.get_position(self.king_positions[self.current_player as usize]);
         if !king_place.is_some_and(|piece| piece.piece_type == PieceTypes::King) {
             // no available moves;
-            return moves;
+            return;
+            // return moves;
         }
 
         for r in 0..8 {
@@ -369,7 +370,7 @@ impl ChessGame {
             }
         }
 
-        moves
+        // moves
     }
 
     // Returns if piece is targeted by enemy pieces
