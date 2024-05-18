@@ -105,7 +105,7 @@ impl ChessGame {
     }
 
     pub fn get_position(&self, position: Position) -> &Option<Piece> {
-        // position is always valid
+        // SAFETY: position is always valid
         unsafe {
             self.board
                 .get_unchecked(position.row() as usize)
@@ -115,7 +115,7 @@ impl ChessGame {
 
     // pub for debugging
     pub fn set_position(&mut self, position: Position, new_place: Option<Piece>) {
-        // position is always valid
+        // SAFETY: position is always valid
         unsafe {
             let place = self
                 .board
@@ -135,6 +135,8 @@ impl ChessGame {
     }
 
     pub fn push_history(&mut self, _move: Move) {
+        // SAFETY: The number of possible moves on the board at any given time
+        // should never exceed the arrays capacity (256)
         unsafe {
             debug_assert!(!self.move_stack.is_full());
             self.move_stack.push_unchecked(_move);
@@ -170,7 +172,7 @@ impl ChessGame {
                     Players::White => 0,
                     Players::Black => 7,
                 };
-
+                // SAFETY: Theses are hardcoded valid positions
                 let (old_king, new_king, old_rook, new_rook) = unsafe {
                     (
                         Position::new_unsafe(row, 4),
@@ -206,7 +208,7 @@ impl ChessGame {
                     Players::White => 0,
                     Players::Black => 7,
                 };
-
+                // SAFETY: Theses are hardcoded valid positions
                 let (old_king, new_king, old_rook, new_rook) = unsafe {
                     (
                         Position::new_unsafe(row, 4),
@@ -280,7 +282,7 @@ impl ChessGame {
                     Players::White => 0,
                     Players::Black => 7,
                 };
-
+                // SAFETY: Theses are hardcoded valid positions
                 let (old_king, new_king, old_rook, new_rook) = unsafe {
                     (
                         Position::new_unsafe(row, 4),
@@ -316,7 +318,7 @@ impl ChessGame {
                     Players::White => 0,
                     Players::Black => 7,
                 };
-
+                // SAFETY: Theses are hardcoded valid positions
                 let (old_king, new_king, old_rook, new_rook) = unsafe {
                     (
                         Position::new_unsafe(row, 4),
@@ -362,6 +364,7 @@ impl ChessGame {
 
         for r in 0..8 {
             for c in 0..8 {
+                // SAFETY: Theses are hardcoded valid positions
                 unsafe {
                     if let Some(piece) = self.board.get_unchecked(r).get_unchecked(c) {
                         if piece.owner == self.current_player {

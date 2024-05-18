@@ -18,39 +18,49 @@ pub struct Piece {
     pub owner: Players,
 }
 
+macro_rules! push {
+    ( $moves:ident, $move:expr ) => {
+        // SAFETY: The number of possible moves on the board at any given time
+        // should never exceed the arrays capacity (256)
+        #[allow(unused_unsafe)]
+        unsafe {
+            $moves.push_unchecked($move);
+        }
+    };
+}
+
 macro_rules! find_moves_loops {
     ( $moves:ident, $pos:ident, $game:ident, $piece_type:ident, $( $x:expr ),* ) => {
-        {
-            $(
-            for delta in $x {
-                if let Some(new_pos) = $pos.add(delta) {
-                    let place = $game.get_position(new_pos);
-                    let _move = Move::Normal {
-                        piece: *$piece_type,
-                        start: $pos,
-                        end: new_pos,
-                        captured_piece: *place,
-                    };
+        $(
+        for delta in $x {
+            if let Some(new_pos) = $pos.add(delta) {
+                let place = $game.get_position(new_pos);
+                let _move = Move::Normal {
+                    piece: *$piece_type,
+                    start: $pos,
+                    end: new_pos,
+                    captured_piece: *place,
+                };
 
-                    if let Some(piece) = place  {
-                        if piece.owner != $game.current_player {
-                            unsafe {$moves.push_unchecked(_move);}
-                        }
-                        break;
+                if let Some(piece) = place  {
+                    if piece.owner != $game.current_player {
+                        push!($moves, _move);
                     }
-
-                    unsafe {$moves.push_unchecked(_move);}
-                } else {
                     break;
                 }
+
+                push!($moves, _move);
+            } else {
+                break;
             }
-            )*
         }
+        )*
     };
 }
 
 impl Piece {
     pub fn score(&self, pos: Position) -> i32 {
+        // SAFETY: Position is always valid
         unsafe {
             let piece_score = *match self.piece_type {
                 PieceTypes::Pawn => &[0, 90, 100, 115, 118, 120, 123, 130],
@@ -98,18 +108,21 @@ impl Piece {
                     Players::Black => (-2, 0),
                 };
 
+                // SAFETY: First moves for pawns always exist
                 unsafe {
                     if pos.row() == first_row
                         && game.get_position(pos.add_unsafe(normal_delta)).is_none()
                         && game.get_position(pos.add_unsafe(first_row_delta)).is_none()
                     {
-                        // First moves always exist
-                        moves.push_unchecked(Move::Normal {
-                            piece: *self,
-                            start: pos,
-                            end: pos.add_unsafe(first_row_delta),
-                            captured_piece: None,
-                        });
+                        push!(
+                            moves,
+                            Move::Normal {
+                                piece: *self,
+                                start: pos,
+                                end: pos.add_unsafe(first_row_delta),
+                                captured_piece: None,
+                            }
+                        );
                     }
                 }
 
@@ -135,10 +148,7 @@ impl Piece {
                                 captured_piece: None,
                             }
                         };
-
-                        unsafe {
-                            moves.push_unchecked(_move);
-                        }
+                        push!(moves, _move);
                     }
                 }
 
@@ -161,10 +171,7 @@ impl Piece {
                                     captured_piece: *place,
                                 }
                             };
-
-                            unsafe {
-                                moves.push_unchecked(_move);
-                            }
+                            push!(moves, _move);
                         }
                     }
                 }
@@ -185,17 +192,16 @@ impl Piece {
                 {
                     if let Some(new_pos) = pos.add(delta) {
                         let place = game.get_position(new_pos);
-                        if place.is_none()
-                            || place.is_some_and(|piece| piece.owner != game.current_player)
-                        {
-                            unsafe {
-                                moves.push_unchecked(Move::Normal {
+                        if !place.is_some_and(|piece| piece.owner == game.current_player) {
+                            push!(
+                                moves,
+                                Move::Normal {
                                     piece: *self,
                                     start: pos,
                                     end: new_pos,
                                     captured_piece: *place,
-                                });
-                            }
+                                }
+                            );
                         }
                     }
                 }
@@ -205,6 +211,7 @@ impl Piece {
                         Players::White => 0,
                         Players::Black => 7,
                     };
+                    // SAFETY: Theses are hardcoded valid positions
                     let (king, rook_1, rook_2) = unsafe {
                         (
                             Position::new_unsafe(row, 4),
@@ -212,7 +219,7 @@ impl Piece {
                             Position::new_unsafe(row, 0),
                         )
                     };
-
+                    // SAFETY: Theses are hardcoded valid positions
                     let pos_short =
                         unsafe { [Position::new_unsafe(row, 5), Position::new_unsafe(row, 6)] };
                     // TODO make sure those empty squares are not targeted
@@ -230,13 +237,14 @@ impl Piece {
                                 owner: game.current_player,
                             })
                     {
-                        unsafe {
-                            moves.push_unchecked(Move::CastlingShort {
+                        push!(
+                            moves,
+                            Move::CastlingShort {
                                 owner: game.current_player,
-                            });
-                        }
+                            }
+                        );
                     }
-
+                    // SAFETY: Theses are hardcoded valid positions
                     let pos_long = unsafe {
                         [
                             Position::new_unsafe(row, 1),
@@ -257,11 +265,12 @@ impl Piece {
                                 owner: game.current_player,
                             })
                     {
-                        unsafe {
-                            moves.push_unchecked(Move::CastlingLong {
+                        push!(
+                            moves,
+                            Move::CastlingLong {
                                 owner: game.current_player,
-                            });
-                        }
+                            }
+                        );
                     }
                 }
             }
@@ -280,17 +289,16 @@ impl Piece {
                 {
                     if let Some(new_pos) = pos.add(delta) {
                         let place = game.get_position(new_pos);
-                        if place.is_none()
-                            || place.is_some_and(|piece| piece.owner != game.current_player)
-                        {
-                            unsafe {
-                                moves.push_unchecked(Move::Normal {
+                        if !place.is_some_and(|piece| piece.owner == game.current_player) {
+                            push!(
+                                moves,
+                                Move::Normal {
                                     piece: *self,
                                     start: pos,
                                     end: new_pos,
                                     captured_piece: *place,
-                                });
-                            }
+                                }
+                            );
                         }
                     }
                 }
@@ -307,7 +315,6 @@ impl Piece {
                     (1..).map(|x| (-x, 0))
                 ];
             }
-
             PieceTypes::Bishop => {
                 find_moves_loops![
                     moves,
