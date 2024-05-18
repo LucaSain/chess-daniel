@@ -42,12 +42,12 @@ pub enum Move {
 // all fields are public for debugging
 // TODO: remove pub
 pub struct ChessGame {
-    pub board: [[Option<Piece>; 8]; 8],
-    pub move_stack: ArrayVec<Move, 1000>, // debug
-    pub current_player: Players,
-    pub has_castled: [bool; 2],
-    pub king_positions: [Position; 2], // for finding if it is in check
     pub score: i32,
+    pub current_player: Players,
+    pub king_positions: [Position; 2],
+    pub board: [[Option<Piece>; 8]; 8],
+    pub has_castled: [bool; 2],
+    pub move_stack: Vec<Move>,
 }
 
 impl Players {
@@ -91,7 +91,7 @@ impl ChessGame {
                     Some(Piece {piece_type: PieceTypes::Rook, owner: Players::Black}),
                 ],
             ],
-            move_stack: ArrayVec::new(),
+            move_stack: Vec::with_capacity(1000),
             has_castled: [false; 2],
             king_positions: [
                 Position::new(0, 4).unwrap(),
@@ -135,12 +135,7 @@ impl ChessGame {
     }
 
     pub fn push_history(&mut self, _move: Move) {
-        // SAFETY: The number of possible moves on the board at any given time
-        // should never exceed the arrays capacity (256)
-        unsafe {
-            debug_assert!(!self.move_stack.is_full());
-            self.move_stack.push_unchecked(_move);
-        };
+        self.move_stack.push(_move);
 
         self.push(_move);
     }
