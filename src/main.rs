@@ -14,7 +14,6 @@ fn get_best_move_score(
         return game.score * (game.current_player as i32);
     }
 
-    let player = game.current_player;
     let mut moves = ArrayVec::new();
     game.get_moves(&mut moves);
     if moves.is_empty() {
@@ -28,9 +27,9 @@ fn get_best_move_score(
     if depth >= 5 {
         moves.sort_by_cached_key(|a| {
             game.push(*a);
-            let score = -get_best_move_score(game, depth - 5, -beta, -alpha, None);
+            let score = get_best_move_score(game, depth - 5, -beta, -alpha, None);
             game.pop(*a);
-            score * (player as i32)
+            score
         })
     } else if depth >= 2 {
         moves.sort_unstable_by(|a, b| match a {
