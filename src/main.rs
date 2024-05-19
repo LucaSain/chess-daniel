@@ -1,26 +1,7 @@
 use arrayvec::ArrayVec;
 use chess::*;
-// use std::collections::{BTreeMap, HashMap, HashSet};
-// static mut COUNT: usize = 0;
 
-// fn count_moves(game: &mut ChessGame, depth: usize) -> usize {
-//     if depth == 0 {
-//         return 1;
-//     }
-//     let moves = game.get_moves();
-
-//     moves
-//         .iter()
-//         .map(|_move| {
-//             game.push(*_move);
-//             let count = count_moves(game, depth - 1);
-//             game.pop(*_move);
-//             count
-//         })
-//         .fold(0, |acc, num| acc + num)
-// }
-
-fn get_best_move_score(game: &mut ChessGame, depth: u8) -> i32 {
+fn get_best_move_score(game: &mut ChessGame, depth: u8, mut alpha: i32, mut beta: i32) -> i32 {
     if depth == 0 {
         return game.score;
     }
@@ -28,29 +9,42 @@ fn get_best_move_score(game: &mut ChessGame, depth: u8) -> i32 {
     let player = game.current_player;
     let mut moves = ArrayVec::new();
     game.get_moves(&mut moves);
-    let iter = moves.iter().map(|_move| {
-        game.push(*_move);
-        let best_score = get_best_move_score(game, depth - 1);
-        game.pop(*_move);
-        best_score
-    });
+    let mut best_score;
 
     match player {
-        Players::White => iter.max().unwrap_or(i32::MIN),
-        Players::Black => iter.min().unwrap_or(i32::MAX),
+        Players::White => {
+            best_score = i32::MIN;
+            for _move in moves {
+                game.push(_move);
+                best_score = best_score.max(get_best_move_score(game, depth - 1, alpha, beta));
+                game.pop(_move);
+                if best_score > beta {
+                    break;
+                }
+                alpha = alpha.max(best_score);
+            }
+        }
+        Players::Black => {
+            best_score = i32::MAX;
+            for _move in moves {
+                game.push(_move);
+                best_score = best_score.min(get_best_move_score(game, depth - 1, alpha, beta));
+                game.pop(_move);
+                if best_score < alpha {
+                    break;
+                }
+                beta = beta.min(best_score);
+            }
+        }
     }
+
+    best_score
 }
 
 fn get_best_move(game: &mut ChessGame, depth: u8) -> (Option<Move>, i32) {
     let player = game.current_player;
     let mut moves = ArrayVec::new();
     game.get_moves(&mut moves);
-    let iter = moves.iter().map(|_move| {
-        game.push(*_move);
-        let best_move = get_best_move_score(game, depth - 1);
-        game.pop(*_move);
-        (Some(*_move), best_move)
-    });
 
     let mut best_move = None;
     let mut best_score;
@@ -58,19 +52,25 @@ fn get_best_move(game: &mut ChessGame, depth: u8) -> (Option<Move>, i32) {
     match player {
         Players::White => {
             best_score = i32::MIN;
-            for (_move, score) in iter {
+            for _move in moves {
+                game.push(_move);
+                let score = get_best_move_score(game, depth - 1, best_score, i32::MAX);
+                game.pop(_move);
                 if score > best_score {
-                    best_move = _move;
                     best_score = score;
+                    best_move = Some(_move);
                 }
             }
         }
         Players::Black => {
             best_score = i32::MAX;
-            for (_move, score) in iter {
+            for _move in moves {
+                game.push(_move);
+                let score = get_best_move_score(game, depth - 1, i32::MIN, best_score);
+                game.pop(_move);
                 if score < best_score {
-                    best_move = _move;
                     best_score = score;
+                    best_move = Some(_move);
                 }
             }
         }
@@ -78,66 +78,6 @@ fn get_best_move(game: &mut ChessGame, depth: u8) -> (Option<Move>, i32) {
 
     (best_move, best_score)
 }
-
-// fn get_best_move_main(game: &mut ChessGame, depth: usize) -> Option<Move> {
-//     let mut best_moves = Vec::<Vec<Move>>::with_capacity(1000);
-//     game.get_moves()
-//         .into_iter()
-//         .for_each(|_move| best_moves.push(vec![_move]));
-
-//     for k in 0..depth {
-//         let mut new_moves = BTreeMap::<i64, (&[Move], Move)>::new();
-//         best_moves.iter().enumerate().for_each(|(i, vec)| {
-//             vec.iter().for_each(|_move| game.push(*_move));
-
-//             game.get_moves()
-//                 .into_iter()
-//                 .enumerate()
-//                 .for_each(|(j, _move)| {
-//                     let score = get_best_move(game, 4).1;
-//                     // let mut new_vec = vec.clone();
-//                     // new_vec.push((&vec, _move));
-//                     new_moves.insert(
-//                         (score * 100000.0) as i64 + depth as i64 * 100 + i as i64 * 10 + j as i64,
-//                         (&vec, _move),
-//                     );
-//                 });
-
-//             vec.iter().for_each(|_| {
-//                 game.pop();
-//             });
-//         });
-
-//         // if k == 0 {
-//         //     if game.current_player == Players::White && new_moves.first_key_value().unwrap().first().unwrap()[0].0 > 90000000 {
-//         //         return best_paths[0].1 .0.first().map(|x| *x);
-//         //     } else if game.current_player == Players::Black && best_paths.last().unwrap.0 < -90000000 {
-//         //         return best_paths[0].1 .0.first().map(|x| *x);
-//         //     }
-//         // }
-//         // let mut taken_moves = HashMap::<Move, u8>::new();
-//         // // taken_moves.in (*best_moves.first().unwrap().first().unwrap());
-//         // let best_paths: Vec<_> = match game.current_player {
-//         //     Players::White => new_moves.into_iter().rev().fpr_each(_z)//.take(NUM_MOVES).collect(),
-//         //     Players::Black => new_moves.into_iter().take(NUM_MOVES).collect(),
-//         // };
-
-//         // best_moves = best_paths
-//         //     .into_iter()
-//         //     .map(|(_, (moves, _move))| {
-//         //         let mut new_moves = moves.to_owned();
-//         //         new_moves.push(_move);
-//         //         new_moves
-//         //     })
-//         //     .collect();
-
-//         dbg!(best_moves
-//             .iter()
-//             .map(|x| x.first().unwrap())
-//             .collect::<Vec<_>>());
-//     }
-//     best_moves[0].first().map(|x| *x)
-// }
 
 fn main() {
     let mut args = std::env::args();
@@ -151,28 +91,20 @@ fn main() {
         return;
     } else if arg == "auto" {
         loop {
+            let mut moves = ArrayVec::new();
+            game.get_moves(&mut moves);
             println!("{}", game.get_pgn());
             dbg!(game.clone());
             let _move = get_best_move(&mut game, depth);
-            game.push_history(_move.0.unwrap());
+            dbg!(_move.1);
+            let next_move = match _move.0 {
+                Some(_move) => _move,
+                None => moves[0],
+            };
+            game.push_history(next_move);
         }
     } else if arg == "play" {
         loop {
-            // let avg_moves = (count_moves(&mut game, 4) as f64).powf(1.0 / 4.0);
-
-            // let mut move_count = 1.0;
-            // let mut depth = 0;
-            // for i in 0.. {
-            //     move_count *= avg_moves;
-            //     if move_count > 200_000_000.0 {
-            //         depth = i;
-            //         break;
-            //     }
-            // }
-
-            // if depth < 3 {
-            //     depth = 3;
-            // }
             println!("{}", game.get_pgn());
             dbg!(game.clone());
             let _move = get_best_move(&mut game, depth);
