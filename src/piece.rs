@@ -4,12 +4,12 @@ use super::{ChessGame, Move, Players, Position};
 
 #[derive(PartialEq, Eq, Clone, Copy, Debug, Hash, PartialOrd, Ord)]
 pub enum PieceTypes {
-    Knight,
-    Bishop,
-    Queen,
-    Rook,
-    Pawn,
     King,
+    Rook,
+    Queen,
+    Pawn,
+    Bishop,
+    Knight,
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash)]

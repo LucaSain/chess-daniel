@@ -3,6 +3,10 @@ use std::cmp::Ordering;
 use arrayvec::ArrayVec;
 use chess::*;
 
+static mut MOVES: usize = 0;
+static mut TAKEN: usize = 0;
+static mut CALLED: usize = 0;
+
 fn get_best_move_score(
     game: &mut ChessGame,
     depth: u8,
@@ -10,16 +14,32 @@ fn get_best_move_score(
     mut beta: i32,
     last_capture: Option<Position>,
 ) -> i32 {
-    if depth == 0 {
+    if depth <= 0 {
         return game.score;
     }
 
     let player = game.current_player;
     let mut moves = ArrayVec::new();
     game.get_moves(&mut moves);
+    if moves.is_empty() {
+        match game.current_player {
+            Players::White => return i32::MIN,
+            Players::Black => return i32::MAX,
+        };
+    }
 
     // We want to sort the moves best on the most likely ones to be good
-    if depth >= 2 {
+    if depth >= 5 {
+        moves.sort_by_cached_key(|a| {
+            game.push(*a);
+            let score = get_best_move_score(game, depth - 5, alpha, beta, None);
+            game.pop(*a);
+            match player {
+                Players::White => -score,
+                Players::Black => score,
+            }
+        })
+    } else if depth >= 2 {
         moves.sort_unstable_by(|a, b| match a {
             Move::Normal {
                 captured_piece: capture_a,
@@ -32,20 +52,25 @@ fn get_best_move_score(
                     end: end_b,
                     ..
                 } => {
-                    if capture_a.is_some() {
-                        if capture_b.is_some() {
+                    if let Some(cap_piece_a) = capture_a {
+                        if let Some(cap_piece_b) = capture_b {
                             if let Some(pos) = last_capture {
                                 if pos == *end_b {
                                     return Ordering::Greater;
                                 }
                             }
+
+                            if cap_piece_a != cap_piece_b {
+                                return cap_piece_a.piece_type.cmp(&cap_piece_b.piece_type);
+                            }
+
                             return piece_a.piece_type.cmp(&piece_b.piece_type);
                         }
                         return Ordering::Less;
                     } else if capture_b.is_some() {
                         return Ordering::Greater;
                     }
-                    piece_a.piece_type.cmp(&piece_b.piece_type)
+                    piece_b.piece_type.cmp(&piece_a.piece_type)
                 }
 
                 _ => Ordering::Greater,
@@ -58,8 +83,9 @@ fn get_best_move_score(
     let mut best_score;
     match player {
         Players::White => {
-            best_score = i32::MIN;
-            for _move in moves {
+            best_score = -1000000000;
+            for _move in moves.iter() {
+                let _move = *_move;
                 let capture = match _move {
                     Move::Normal {
                         end,
@@ -79,8 +105,9 @@ fn get_best_move_score(
             }
         }
         Players::Black => {
-            best_score = i32::MAX;
-            for _move in moves {
+            best_score = 1000000000;
+            for _move in moves.iter() {
+                let _move = *_move;
                 let capture = match _move {
                     Move::Normal {
                         end,
@@ -114,7 +141,7 @@ fn get_best_move(game: &mut ChessGame, depth: u8) -> (Option<Move>, i32) {
 
     match player {
         Players::White => {
-            best_score = i32::MIN;
+            best_score = -1000000000;
             for _move in moves {
                 game.push(_move);
                 let score = get_best_move_score(game, depth - 1, best_score, i32::MAX, None);
@@ -126,7 +153,7 @@ fn get_best_move(game: &mut ChessGame, depth: u8) -> (Option<Move>, i32) {
             }
         }
         Players::Black => {
-            best_score = i32::MAX;
+            best_score = 1000000000;
             for _move in moves {
                 game.push(_move);
                 let score = get_best_move_score(game, depth - 1, i32::MIN, best_score, None);
@@ -151,7 +178,6 @@ fn main() {
 
     if arg == "test" {
         let _move = get_best_move(&mut game, depth);
-        return;
     } else if arg == "auto" {
         loop {
             let mut moves = ArrayVec::new();
@@ -272,4 +298,6 @@ fn main() {
             }
         }
     }
+
+    unsafe { println!("{}\n{}\n{}", CALLED, MOVES, TAKEN) }
 }
