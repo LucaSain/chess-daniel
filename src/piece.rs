@@ -78,10 +78,7 @@ impl Piece {
                 PieceTypes::King => 100,
                 _ => *[96, 97, 98, 100, 100, 98, 97, 96].get_unchecked(pos.col() as usize),
             };
-            match self.owner {
-                Players::White => piece_score * col_score,
-                Players::Black => -piece_score * col_score,
-            }
+            piece_score * col_score * (self.owner as i32)
         }
     }
 
@@ -213,7 +210,10 @@ impl Piece {
                     }
                 }
 
-                if !game.has_castled[game.current_player as usize] {
+                if !game.has_castled[match game.current_player {
+                    Players::White => 0,
+                    Players::Black => 1,
+                }] {
                     let row = match game.current_player {
                         Players::White => 0,
                         Players::Black => 7,

@@ -10,8 +10,8 @@ pub use position::*;
 
 #[derive(PartialEq, Eq, Clone, Copy, Debug, Hash)]
 pub enum Players {
-    White = 0,
-    Black = 1,
+    White = 1,
+    Black = -1,
 }
 #[derive(PartialEq, Eq, Clone, Copy, Hash)]
 #[repr(align(8))]
@@ -135,14 +135,22 @@ impl ChessGame {
     }
 
     pub fn get_king_position(&self, player: Players) -> Position {
-        // SAFETY: Players are always 0 or 1
-        unsafe { *self.king_positions.get_unchecked(player as usize) }
+        // SAFETY: Hardcoded values are valid
+        unsafe {
+            match player {
+                Players::White => *self.king_positions.get_unchecked(0),
+                Players::Black => *self.king_positions.get_unchecked(1),
+            }
+        }
     }
 
     fn set_king_position(&mut self, player: Players, position: Position) {
         // SAFETY: Players are always 0 or 1
         unsafe {
-            *self.king_positions.get_unchecked_mut(player as usize) = position;
+            match player {
+                Players::White => *self.king_positions.get_unchecked_mut(0) = position,
+                Players::Black => *self.king_positions.get_unchecked_mut(1) = position,
+            };
         }
     }
 
@@ -207,7 +215,10 @@ impl ChessGame {
                     }),
                 );
 
-                self.has_castled[self.current_player as usize] = true;
+                self.has_castled[match self.current_player {
+                    Players::White => 0,
+                    Players::Black => 1,
+                }] = true;
                 self.set_king_position(self.current_player, new_king);
             }
             Move::CastlingShort { owner } => {
@@ -243,7 +254,10 @@ impl ChessGame {
                     }),
                 );
 
-                self.has_castled[self.current_player as usize] = true;
+                self.has_castled[match self.current_player {
+                    Players::White => 0,
+                    Players::Black => 1,
+                }] = true;
                 self.set_king_position(self.current_player, new_king);
             }
         };
@@ -317,7 +331,10 @@ impl ChessGame {
                     }),
                 );
 
-                self.has_castled[owner as usize] = false;
+                self.has_castled[match self.current_player {
+                    Players::White => 0,
+                    Players::Black => 1,
+                }] = false;
                 self.set_king_position(owner, old_king);
             }
             Move::CastlingShort { owner } => {
@@ -353,7 +370,10 @@ impl ChessGame {
                     }),
                 );
 
-                self.has_castled[owner as usize] = false;
+                self.has_castled[match self.current_player {
+                    Players::White => 0,
+                    Players::Black => 1,
+                }] = false;
                 self.set_king_position(owner, old_king);
             }
         };
