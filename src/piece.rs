@@ -2,13 +2,13 @@ use arrayvec::ArrayVec;
 
 use super::{ChessGame, Move, Players, Position};
 
-#[derive(PartialEq, Eq, Clone, Copy, Debug, Hash)]
+#[derive(PartialEq, Eq, Clone, Copy, Debug, Hash, PartialOrd, Ord)]
 pub enum PieceTypes {
-    Pawn,
-    Rook,
     Knight,
     Bishop,
     Queen,
+    Rook,
+    Pawn,
     King,
 }
 
