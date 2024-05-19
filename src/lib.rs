@@ -381,11 +381,8 @@ impl ChessGame {
         }
     }
 
-    // Returns if piece is targeted by enemy pieces
-    pub fn is_targeted(&self, position: Position) -> bool {
-        // This function should only be called with valid pieces
-        let player = self.get_position(position).unwrap().owner;
-
+    // Returns if player's position is targeted by enemy pieces
+    pub fn is_targeted(&self, position: Position, player: Players) -> bool {
         // Verifiy for kings
         for delta in [
             (1, 0),
