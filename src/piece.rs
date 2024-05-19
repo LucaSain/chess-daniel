@@ -178,6 +178,7 @@ impl Piece {
                 // TODO: En passant
             }
             PieceTypes::King => {
+                let other_king_pos = game.get_king_position(game.current_player.the_other());
                 for delta in [
                     (0, 1),
                     (0, -1),
@@ -193,6 +194,12 @@ impl Piece {
                     if let Some(new_pos) = pos.add(delta) {
                         let place = game.get_position(new_pos);
                         if !place.is_some_and(|piece| piece.owner == game.current_player) {
+                            // Kings can't move into each other
+                            if i8::abs(new_pos.row() - other_king_pos.row()) <= 1
+                                && i8::abs(new_pos.col() - other_king_pos.col()) <= 1
+                            {
+                                continue;
+                            }
                             push!(
                                 moves,
                                 Move::Normal {

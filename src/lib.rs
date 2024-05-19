@@ -10,8 +10,8 @@ pub use position::*;
 
 #[derive(PartialEq, Eq, Clone, Copy, Debug, Hash)]
 pub enum Players {
-    White,
-    Black,
+    White = 0,
+    Black = 1,
 }
 #[derive(PartialEq, Eq, Clone, Copy, Hash)]
 #[repr(align(8))]
@@ -134,6 +134,18 @@ impl ChessGame {
         }
     }
 
+    pub fn get_king_position(&self, player: Players) -> Position {
+        // SAFETY: Players are always 0 or 1
+        unsafe { *self.king_positions.get_unchecked(player as usize) }
+    }
+
+    fn set_king_position(&mut self, player: Players, position: Position) {
+        // SAFETY: Players are always 0 or 1
+        unsafe {
+            *self.king_positions.get_unchecked_mut(player as usize) = position;
+        }
+    }
+
     pub fn push_history(&mut self, _move: Move) {
         self.move_stack.push(_move);
 
@@ -148,7 +160,7 @@ impl ChessGame {
                 self.set_position(end, Some(piece));
 
                 if piece.piece_type == PieceTypes::King {
-                    self.king_positions[self.current_player as usize] = end;
+                    self.set_king_position(self.current_player, end);
                 }
             }
             #[rustfmt::skip]
@@ -196,7 +208,7 @@ impl ChessGame {
                 );
 
                 self.has_castled[self.current_player as usize] = true;
-                self.king_positions[self.current_player as usize] = new_king;
+                self.set_king_position(self.current_player, new_king);
             }
             Move::CastlingShort { owner } => {
                 let row = match owner {
@@ -232,7 +244,7 @@ impl ChessGame {
                 );
 
                 self.has_castled[self.current_player as usize] = true;
-                self.king_positions[self.current_player as usize] = new_king;
+                self.set_king_position(self.current_player, new_king);
             }
         };
 
@@ -258,7 +270,7 @@ impl ChessGame {
                 self.set_position(end, captured_piece);
 
                 if piece.piece_type == PieceTypes::King {
-                    self.king_positions[self.current_player as usize] = start;
+                    self.set_king_position(self.current_player, start);
                 }
             }
             #[rustfmt::skip]
@@ -306,7 +318,7 @@ impl ChessGame {
                 );
 
                 self.has_castled[owner as usize] = false;
-                self.king_positions[owner as usize] = old_king;
+                self.set_king_position(owner, old_king);
             }
             Move::CastlingShort { owner } => {
                 let row = match owner {
@@ -342,18 +354,16 @@ impl ChessGame {
                 );
 
                 self.has_castled[owner as usize] = false;
-                self.king_positions[owner as usize] = old_king;
+                self.set_king_position(owner, old_king);
             }
         };
     }
 
     pub fn get_moves(&mut self, mut moves: &mut ArrayVec<Move, 128>) {
-        // let mut moves = ArrayVec::new();
-        let king_place = self.get_position(self.king_positions[self.current_player as usize]);
+        let king_place = self.get_position(self.get_king_position(self.current_player));
         if !king_place.is_some_and(|piece| piece.piece_type == PieceTypes::King) {
             // no available moves;
             return;
-            // return moves;
         }
 
         for r in 0..8 {
@@ -369,8 +379,6 @@ impl ChessGame {
                 }
             }
         }
-
-        // moves
     }
 
     // Returns if piece is targeted by enemy pieces
