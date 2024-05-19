@@ -230,19 +230,21 @@ impl Piece {
                     let pos_short =
                         unsafe { [Position::new_unsafe(row, 5), Position::new_unsafe(row, 6)] };
                     // TODO make sure those empty squares are not targeted
-                    if pos_short
-                        .iter()
-                        .all(|pos| game.get_position(*pos).is_none())
-                        && game.get_position(king)
-                            == &Some(Piece {
-                                piece_type: PieceTypes::King,
-                                owner: game.current_player,
-                            })
+                    if pos_short.iter().all(|pos| {
+                        game.get_position(*pos).is_none()
+                            && !game.is_targeted(*pos, game.current_player)
+                    }) && game.get_position(king)
+                        == &Some(Piece {
+                            piece_type: PieceTypes::King,
+                            owner: game.current_player,
+                        })
                         && game.get_position(rook_1)
                             == &Some(Piece {
                                 piece_type: PieceTypes::Rook,
                                 owner: game.current_player,
                             })
+                        && !game.is_targeted(king, game.current_player)
+                        && !game.is_targeted(rook_1, game.current_player)
                     {
                         push!(
                             moves,
@@ -260,17 +262,21 @@ impl Piece {
                         ]
                     };
 
-                    if pos_long.iter().all(|pos| game.get_position(*pos).is_none())
-                        && game.get_position(king)
-                            == &Some(Piece {
-                                piece_type: PieceTypes::King,
-                                owner: game.current_player,
-                            })
+                    if pos_long.iter().all(|pos| {
+                        game.get_position(*pos).is_none()
+                            && !game.is_targeted(*pos, game.current_player)
+                    }) && game.get_position(king)
+                        == &Some(Piece {
+                            piece_type: PieceTypes::King,
+                            owner: game.current_player,
+                        })
                         && game.get_position(rook_2)
                             == &Some(Piece {
                                 piece_type: PieceTypes::Rook,
                                 owner: game.current_player,
                             })
+                        && !game.is_targeted(king, game.current_player)
+                        && !game.is_targeted(rook_2, game.current_player)
                     {
                         push!(
                             moves,
