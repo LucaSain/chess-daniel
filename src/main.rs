@@ -221,5 +221,55 @@ fn main() {
                 }
             }
         }
+    } else if arg == "manual" {
+        loop {
+            println!("{}", game.get_pgn());
+            dbg!(game.clone());
+
+            loop {
+                let mut val = String::new();
+                std::io::stdin()
+                    .read_line(&mut val)
+                    .expect("Failed to read line");
+                let mut substr_iter = val.split_whitespace();
+                let mut next_num =
+                    || -> Result<i8, _> { substr_iter.next().unwrap_or("...").parse() };
+
+                let val1 = next_num().unwrap_or(0);
+                let val2 = next_num().unwrap_or(0);
+
+                let val3 = next_num().unwrap_or(0);
+                let val4 = next_num().unwrap_or(0);
+
+                let pos1 = Position::new(val1, val2);
+                let pos2 = Position::new(val3, val4);
+
+                if pos1.is_none() || pos2.is_none() {
+                    if val1 == -1 {
+                        game.pop_history();
+                        game.pop_history();
+                        dbg!(game.clone());
+                        continue;
+                    }
+                }
+
+                let pos1 = pos1.unwrap_or(Position::new(0, 0).unwrap());
+                let pos2 = pos2.unwrap_or(Position::new(0, 0).unwrap());
+
+                let mut moves = ArrayVec::new();
+                game.get_moves(&mut moves);
+                let _move = moves.iter().find(|_move| match _move {
+                    Move::Normal { start, end, .. } => *start == pos1 && *end == pos2,
+                    Move::Promovation { start, end, .. } => *start == pos1 && *end == pos2,
+                    Move::CastlingShort { .. } => val1 == 10,
+                    Move::CastlingLong { .. } => val1 == 20,
+                });
+
+                if let Some(_move) = _move {
+                    game.push_history(*_move);
+                    break;
+                }
+            }
+        }
     }
 }
