@@ -163,10 +163,7 @@ fn main() {
             dbg!(game.clone());
             let _move = get_best_move(&mut game, depth);
             dbg!(_move.1);
-            let next_move = match _move.0 {
-                Some(_move) => _move,
-                None => moves[0],
-            };
+            let next_move = _move.0.unwrap();
             game.push_history(next_move);
         }
     } else if arg == "play" {
