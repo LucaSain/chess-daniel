@@ -13,14 +13,28 @@ fn get_best_move_score(
     if depth <= 0 {
         return game.score * (game.current_player as i32);
     }
+    let player = game.current_player;
 
     let mut moves = ArrayVec::new();
     game.get_moves(&mut moves);
+
+    if depth >= 3 {
+        moves = moves
+            .into_iter()
+            .filter(|_move| {
+                game.push(*_move);
+                let condition = !game.is_targeted(game.get_king_position(player), player);
+                game.pop(*_move);
+                condition
+            })
+            .collect();
+    }
+
     if moves.is_empty() {
-        match game.current_player {
-            Players::White => return i32::MIN + 3,
-            Players::Black => return i32::MAX - 3,
-        };
+        if !game.is_targeted(game.get_king_position(player), player) {
+            return 0;
+        }
+        return i32::MIN + 3;
     }
 
     // We want to sort the moves best on the most likely ones to be good
@@ -104,6 +118,17 @@ fn get_best_move_score(
 fn get_best_move(game: &mut ChessGame, depth: u8) -> (Option<Move>, i32) {
     let mut moves = ArrayVec::new();
     game.get_moves(&mut moves);
+
+    let player = game.current_player;
+    moves = moves
+        .into_iter()
+        .filter(|_move| {
+            game.push(*_move);
+            let condition = !game.is_targeted(game.get_king_position(player), player);
+            game.pop(*_move);
+            condition
+        })
+        .collect();
 
     let mut best_move = None;
     let mut best_score = -1000000000;
