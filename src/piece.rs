@@ -210,10 +210,7 @@ impl Piece {
                     }
                 }
 
-                if !game.has_castled[match game.current_player {
-                    Players::White => 0,
-                    Players::Black => 1,
-                }] {
+                if !game.get_castled(game.current_player) {
                     let row = match game.current_player {
                         Players::White => 0,
                         Players::Black => 7,
