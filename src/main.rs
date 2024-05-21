@@ -3,41 +3,65 @@ use std::cmp::Ordering;
 use arrayvec::ArrayVec;
 use chess::*;
 
-static mut MOVES: usize = 0;
-static mut TAKEN: usize = 0;
-static mut CALLED: usize = 0;
-
 fn get_best_move_score(
     game: &mut ChessGame,
     depth: u8,
     mut alpha: i32,
-    mut beta: i32,
+    beta: i32,
     last_capture: Option<Position>,
 ) -> i32 {
     if depth <= 0 {
-        return game.score;
+        return game.score * (game.current_player as i32);
     }
-
     let player = game.current_player;
+
     let mut moves = ArrayVec::new();
     game.get_moves(&mut moves);
+
+    if depth >= 3 {
+        moves = moves
+            .into_iter()
+            .filter(|_move| {
+                game.push(*_move);
+                let condition = !game.is_targeted(game.get_king_position(player), player);
+                game.pop(*_move);
+                condition
+            })
+            .collect();
+    }
+
     if moves.is_empty() {
-        match game.current_player {
-            Players::White => return i32::MIN,
-            Players::Black => return i32::MAX,
+        if !game.is_targeted(game.get_king_position(player), player) {
+            return 0;
+        } else {
+            // The earlier the mate the worse the score for the losing player
+            return i32::MIN + 100 - depth as i32;
+        }
+    } else if moves.len() == 1 {
+        // If there is only one move available push it and don't decrease depth
+        // SAFETY: Length is 1
+        let _move = unsafe { *moves.get_unchecked(0) };
+        let capture = match _move {
+            Move::Normal {
+                end,
+                captured_piece,
+                ..
+            } => captured_piece.map(|_| end),
+            _ => None,
         };
+        game.push(_move);
+        let score = -get_best_move_score(game, depth, -beta, -alpha, capture);
+        game.pop(_move);
+        return score;
     }
 
     // We want to sort the moves best on the most likely ones to be good
     if depth >= 5 {
         moves.sort_by_cached_key(|a| {
             game.push(*a);
-            let score = get_best_move_score(game, depth - 5, alpha, beta, None);
+            let score = get_best_move_score(game, depth - 5, -beta, -alpha, None);
             game.pop(*a);
-            match player {
-                Players::White => -score,
-                Players::Black => score,
-            }
+            score
         })
     } else if depth >= 2 {
         moves.sort_unstable_by(|a, b| match a {
@@ -80,51 +104,29 @@ fn get_best_move_score(
         })
     }
 
-    let mut best_score;
-    match player {
-        Players::White => {
-            best_score = -1000000000;
-            for _move in moves.iter() {
-                let _move = *_move;
-                let capture = match _move {
-                    Move::Normal {
-                        end,
-                        captured_piece,
-                        ..
-                    } => captured_piece.map(|_| end),
-                    _ => None,
-                };
-                game.push(_move);
-                best_score =
-                    best_score.max(get_best_move_score(game, depth - 1, alpha, beta, capture));
-                game.pop(_move);
-                if best_score > beta {
-                    break;
-                }
-                alpha = alpha.max(best_score);
-            }
-        }
-        Players::Black => {
-            best_score = 1000000000;
-            for _move in moves.iter() {
-                let _move = *_move;
-                let capture = match _move {
-                    Move::Normal {
-                        end,
-                        captured_piece,
-                        ..
-                    } => captured_piece.map(|_| end),
-                    _ => None,
-                };
-                game.push(_move);
-                best_score =
-                    best_score.min(get_best_move_score(game, depth - 1, alpha, beta, capture));
-                game.pop(_move);
-                if best_score < alpha {
-                    break;
-                }
-                beta = beta.min(best_score);
-            }
+    let mut best_score = -1000000000;
+    for _move in moves.iter() {
+        let _move = *_move;
+        let capture = match _move {
+            Move::Normal {
+                end,
+                captured_piece,
+                ..
+            } => captured_piece.map(|_| end),
+            _ => None,
+        };
+        game.push(_move);
+        best_score = best_score.max(-get_best_move_score(
+            game,
+            depth - 1,
+            -beta,
+            -alpha,
+            capture,
+        ));
+        game.pop(_move);
+        alpha = alpha.max(best_score);
+        if alpha >= beta {
+            break;
         }
     }
 
@@ -132,37 +134,36 @@ fn get_best_move_score(
 }
 
 fn get_best_move(game: &mut ChessGame, depth: u8) -> (Option<Move>, i32) {
-    let player = game.current_player;
     let mut moves = ArrayVec::new();
     game.get_moves(&mut moves);
 
-    let mut best_move = None;
-    let mut best_score;
+    let player = game.current_player;
+    moves = moves
+        .into_iter()
+        .filter(|_move| {
+            game.push(*_move);
+            let condition = !game.is_targeted(game.get_king_position(player), player);
+            game.pop(*_move);
+            condition
+        })
+        .collect();
 
-    match player {
-        Players::White => {
-            best_score = -1000000000;
-            for _move in moves {
-                game.push(_move);
-                let score = get_best_move_score(game, depth - 1, best_score, i32::MAX, None);
-                game.pop(_move);
-                if score > best_score {
-                    best_score = score;
-                    best_move = Some(_move);
-                }
-            }
-        }
-        Players::Black => {
-            best_score = 1000000000;
-            for _move in moves {
-                game.push(_move);
-                let score = get_best_move_score(game, depth - 1, i32::MIN, best_score, None);
-                game.pop(_move);
-                if score < best_score {
-                    best_score = score;
-                    best_move = Some(_move);
-                }
-            }
+    // If there is only one move available don't bother searching
+    if moves.len() == 1 {
+        return (Some(moves[0]), 0);
+    }
+
+    let mut best_move = None;
+    let mut best_score = -i32::MAX;
+
+    for _move in moves {
+        game.push(_move);
+        // Initially alpha == beta
+        let score = -get_best_move_score(game, depth - 1, i32::MIN + 1, -best_score, None);
+        game.pop(_move);
+        if score > best_score {
+            best_score = score;
+            best_move = Some(_move);
         }
     }
 
@@ -186,10 +187,7 @@ fn main() {
             dbg!(game.clone());
             let _move = get_best_move(&mut game, depth);
             dbg!(_move.1);
-            let next_move = match _move.0 {
-                Some(_move) => _move,
-                None => moves[0],
-            };
+            let next_move = _move.0.unwrap();
             game.push_history(next_move);
         }
     } else if arg == "play" {
@@ -304,6 +302,4 @@ fn main() {
             }
         }
     }
-
-    unsafe { println!("{}\n{}\n{}", CALLED, MOVES, TAKEN) }
 }
