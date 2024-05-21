@@ -213,6 +213,9 @@ fn main() {
                     Move::Promovation { start, end, .. } => *start == pos1 && *end == pos2,
                     Move::CastlingShort { .. } => val1 == 10,
                     Move::CastlingLong { .. } => val1 == 20,
+                    Move::EnPassant {
+                        start_col, end_col, ..
+                    } => *start_col == pos1.col() && *end_col == pos2.col(),
                 });
 
                 if let Some(_move) = _move {
@@ -263,6 +266,9 @@ fn main() {
                     Move::Promovation { start, end, .. } => *start == pos1 && *end == pos2,
                     Move::CastlingShort { .. } => val1 == 10,
                     Move::CastlingLong { .. } => val1 == 20,
+                    Move::EnPassant {
+                        start_col, end_col, ..
+                    } => *start_col == pos1.col() && *end_col == pos2.col(),
                 });
 
                 if let Some(_move) = _move {

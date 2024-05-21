@@ -98,6 +98,11 @@ impl Piece {
                     Players::Black => 0,
                 };
 
+                let en_passant_row = match self.owner {
+                    Players::White => 4,
+                    Players::Black => 3,
+                };
+
                 let normal_delta = match self.owner {
                     Players::White => (1, 0),
                     Players::Black => (-1, 0),
@@ -175,7 +180,19 @@ impl Piece {
                         }
                     }
                 }
-                // TODO: En passant
+
+                let valid_en_passant = unsafe { *game.en_passant_stack.last().unwrap_unchecked() };
+                if pos.row() == en_passant_row
+                    && valid_en_passant >= 0
+                    && i8::abs(valid_en_passant - pos.col()) == 1
+                {
+                    let _move = Move::EnPassant {
+                        owner: game.current_player,
+                        start_col: pos.col(),
+                        end_col: valid_en_passant,
+                    };
+                    push!(moves, _move);
+                }
             }
             PieceTypes::King => {
                 let other_king_pos = game.get_king_position(game.current_player.the_other());
