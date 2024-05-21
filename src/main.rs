@@ -33,8 +33,26 @@ fn get_best_move_score(
     if moves.is_empty() {
         if !game.is_targeted(game.get_king_position(player), player) {
             return 0;
+        } else {
+            // The earlier the mate the worse the score for the losing player
+            return i32::MIN + 100 - depth as i32;
         }
-        return i32::MIN + 3;
+    } else if moves.len() == 1 {
+        // If there is only one move available push it and don't decrease depth
+        // SAFETY: Length is 1
+        let _move = unsafe { *moves.get_unchecked(0) };
+        let capture = match _move {
+            Move::Normal {
+                end,
+                captured_piece,
+                ..
+            } => captured_piece.map(|_| end),
+            _ => None,
+        };
+        game.push(_move);
+        let score = -get_best_move_score(game, depth, -beta, -alpha, capture);
+        game.pop(_move);
+        return score;
     }
 
     // We want to sort the moves best on the most likely ones to be good
@@ -130,12 +148,18 @@ fn get_best_move(game: &mut ChessGame, depth: u8) -> (Option<Move>, i32) {
         })
         .collect();
 
+    // If there is only one move available don't bother searching
+    if moves.len() == 1 {
+        return (Some(moves[0]), 0);
+    }
+
     let mut best_move = None;
-    let mut best_score = -1000000000;
+    let mut best_score = -i32::MAX;
 
     for _move in moves {
         game.push(_move);
-        let score = -get_best_move_score(game, depth - 1, i32::MIN + 3, -best_score, None);
+        // Initially alpha == beta
+        let score = -get_best_move_score(game, depth - 1, i32::MIN + 1, -best_score, None);
         game.pop(_move);
         if score > best_score {
             best_score = score;
