@@ -231,6 +231,8 @@ impl Piece {
                 }
 
                 if !game.has_castled[game.current_player as usize] {
+                    // TODO: Castling requires that neither the king nor the rook have moved
+                    // This is not currently implemented
                     let row = match game.current_player {
                         Players::White => 0,
                         Players::Black => 7,
@@ -246,7 +248,6 @@ impl Piece {
                     // SAFETY: Theses are hardcoded valid positions
                     let pos_short =
                         unsafe { [Position::new_unsafe(row, 5), Position::new_unsafe(row, 6)] };
-                    // TODO make sure those empty squares are not targeted
                     if pos_short.iter().all(|pos| {
                         game.get_position(*pos).is_none()
                             && !game.is_targeted(*pos, game.current_player)
@@ -261,7 +262,6 @@ impl Piece {
                                 owner: game.current_player,
                             })
                         && !game.is_targeted(king, game.current_player)
-                        && !game.is_targeted(rook_1, game.current_player)
                     {
                         push!(
                             moves,
@@ -271,13 +271,8 @@ impl Piece {
                         );
                     }
                     // SAFETY: Theses are hardcoded valid positions
-                    let pos_long = unsafe {
-                        [
-                            Position::new_unsafe(row, 1),
-                            Position::new_unsafe(row, 2),
-                            Position::new_unsafe(row, 3),
-                        ]
-                    };
+                    let pos_long =
+                        unsafe { [Position::new_unsafe(row, 2), Position::new_unsafe(row, 3)] };
 
                     if pos_long.iter().all(|pos| {
                         game.get_position(*pos).is_none()
@@ -293,7 +288,6 @@ impl Piece {
                                 owner: game.current_player,
                             })
                         && !game.is_targeted(king, game.current_player)
-                        && !game.is_targeted(rook_2, game.current_player)
                     {
                         push!(
                             moves,
