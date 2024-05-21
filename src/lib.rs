@@ -35,7 +35,11 @@ pub enum Move {
     CastlingLong {
         owner: Players,
     },
-    // No en passant
+    EnPassant {
+        owner: Players,
+        start_col: i8,
+        end_col: i8,
+    }, // No en passant
 }
 
 #[derive(Clone)]
@@ -48,6 +52,7 @@ pub struct ChessGame {
     pub board: [[Option<Piece>; 8]; 8],
     pub has_castled: [bool; 2],
     pub move_stack: Vec<Move>,
+    pub en_passant_stack: ArrayVec<i8, 256>,
 }
 
 impl Players {
@@ -62,7 +67,7 @@ impl Players {
 impl ChessGame {
     pub fn new() -> Self {
         #[rustfmt::skip]
-        let game = ChessGame {
+        let mut game = ChessGame {
             board: [
                 [
                     Some(Piece {piece_type: PieceTypes::Rook, owner: Players::White}),
@@ -99,8 +104,9 @@ impl ChessGame {
             ],
             current_player: Players::White,
             score: 0,
+            en_passant_stack: ArrayVec::new(),
         };
-
+        game.en_passant_stack.push(-1);
         game
     }
 
@@ -153,6 +159,7 @@ impl ChessGame {
     }
 
     pub fn push(&mut self, _move: Move) {
+        let mut valid_en_passant = -1;
         match _move {
             #[rustfmt::skip]
             Move::Normal { piece, start, end, .. } => {
@@ -162,6 +169,10 @@ impl ChessGame {
                 if piece.piece_type == PieceTypes::King {
                     self.set_king_position(self.current_player, end);
                 }
+
+                valid_en_passant =
+                if piece.piece_type == PieceTypes::Pawn && i8::abs(end.row() - start.row()) == 2
+                    { start.col() } else { -1 }
             }
             #[rustfmt::skip]
             Move::Promovation { owner, start, end, .. } => {
@@ -173,6 +184,36 @@ impl ChessGame {
                         piece_type: PieceTypes::Queen,
                     }),
                 );
+            }
+            Move::EnPassant {
+                owner,
+                start_col,
+                end_col,
+            } => {
+                // SAFETY: Theses are hardcoded valid positions
+                unsafe {
+                    let old_pawn = match owner {
+                        Players::White => Position::new_unsafe(4, start_col),
+                        Players::Black => Position::new_unsafe(3, start_col),
+                    };
+                    let new_pawn = match owner {
+                        Players::White => Position::new_unsafe(5, end_col),
+                        Players::Black => Position::new_unsafe(2, end_col),
+                    };
+                    let taken_pawn = match owner {
+                        Players::White => Position::new_unsafe(4, end_col),
+                        Players::Black => Position::new_unsafe(3, end_col),
+                    };
+                    self.set_position(taken_pawn, None);
+                    self.set_position(old_pawn, None);
+                    self.set_position(
+                        new_pawn,
+                        Some(Piece {
+                            piece_type: PieceTypes::Pawn,
+                            owner: owner,
+                        }),
+                    )
+                }
             }
             Move::CastlingLong { owner } => {
                 let row = match owner {
@@ -247,8 +288,11 @@ impl ChessGame {
                 self.set_king_position(self.current_player, new_king);
             }
         };
-
         self.current_player = self.current_player.the_other();
+        // SAFETY: The game should not be longer than 256 moves
+        unsafe {
+            self.en_passant_stack.push_unchecked(valid_en_passant);
+        }
     }
 
     pub fn pop_history(&mut self) -> Option<Move> {
@@ -261,6 +305,7 @@ impl ChessGame {
     }
 
     pub fn pop(&mut self, _move: Move) {
+        self.en_passant_stack.pop();
         self.current_player = self.current_player.the_other();
 
         match _move {
@@ -283,6 +328,42 @@ impl ChessGame {
                     }),
                 );
                 self.set_position(end, captured_piece);
+            }
+            Move::EnPassant {
+                owner,
+                start_col,
+                end_col,
+            } => {
+                // SAFETY: Theses are hardcoded valid positions
+                unsafe {
+                    let old_pawn = match owner {
+                        Players::White => Position::new_unsafe(4, start_col),
+                        Players::Black => Position::new_unsafe(3, start_col),
+                    };
+                    let new_pawn = match owner {
+                        Players::White => Position::new_unsafe(5, end_col),
+                        Players::Black => Position::new_unsafe(2, end_col),
+                    };
+                    let taken_pawn = match owner {
+                        Players::White => Position::new_unsafe(4, end_col),
+                        Players::Black => Position::new_unsafe(3, end_col),
+                    };
+                    self.set_position(new_pawn, None);
+                    self.set_position(
+                        taken_pawn,
+                        Some(Piece {
+                            piece_type: PieceTypes::Pawn,
+                            owner: owner.the_other(),
+                        }),
+                    );
+                    self.set_position(
+                        old_pawn,
+                        Some(Piece {
+                            piece_type: PieceTypes::Pawn,
+                            owner: owner,
+                        }),
+                    );
+                }
             }
             Move::CastlingLong { owner } => {
                 let row = match owner {
@@ -530,6 +611,21 @@ impl ChessGame {
                 }
                 Move::CastlingShort { .. } => String::from_str("O-O").unwrap(),
                 Move::CastlingLong { .. } => String::from_str("O-O-O").unwrap(),
+                Move::EnPassant {
+                    start_col,
+                    end_col,
+                    owner,
+                } => {
+                    let mut s = String::new();
+                    s.push((*start_col as u8 + b'a') as char);
+                    s.push('x');
+                    s.push((*end_col as u8 + b'a') as char);
+                    match owner {
+                        Players::White => s.push('6'),
+                        Players::Black => s.push('3'),
+                    };
+                    s
+                }
                 Move::Promovation {
                     end,
                     captured_piece,
