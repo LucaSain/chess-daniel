@@ -281,7 +281,7 @@ impl Piece {
                         {
                             push!(
                                 moves,
-                                Move::CastlingShort {
+                                Move::CastlingLong {
                                     owner: game.current_player,
                                 }
                             );

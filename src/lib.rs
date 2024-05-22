@@ -361,14 +361,14 @@ impl ChessGame {
                 self.set_king_position(self.current_player, new_king);
                 match self.current_player {
                     Players::White => {
-                        state.white_moved_king = false;
-                        state.white_moved_rook_king = false;
-                        state.white_moved_rook_queen = false;
+                        state.white_moved_king = true;
+                        state.white_moved_rook_king = true;
+                        state.white_moved_rook_queen = true;
                     }
                     Players::Black => {
-                        state.black_moved_king = false;
-                        state.black_moved_rook_king = false;
-                        state.black_moved_rook_queen = false;
+                        state.black_moved_king = true;
+                        state.black_moved_rook_king = true;
+                        state.black_moved_rook_queen = true;
                     }
                 }
             }
