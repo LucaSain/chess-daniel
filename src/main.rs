@@ -10,19 +10,7 @@ fn get_best_move_score(game: &mut ChessGame, depth: u8, mut alpha: i32, beta: i3
     let player = game.current_player;
     let state = *game.state();
     let mut moves = ArrayVec::new();
-    game.get_moves(&mut moves);
-
-    if depth >= 3 {
-        moves = moves
-            .into_iter()
-            .filter(|_move| {
-                game.push(*_move);
-                let condition = !game.is_targeted(game.get_king_position(player), player);
-                game.pop(*_move);
-                condition
-            })
-            .collect();
-    }
+    game.get_moves(&mut moves, depth >= 2);
 
     if moves.is_empty() {
         if !game.is_targeted(game.get_king_position(player), player) {
@@ -107,18 +95,7 @@ fn get_best_move_score(game: &mut ChessGame, depth: u8, mut alpha: i32, beta: i3
 
 fn get_best_move(game: &mut ChessGame, depth: u8) -> (Option<Move>, i32) {
     let mut moves = ArrayVec::new();
-    game.get_moves(&mut moves);
-
-    let player = game.current_player;
-    moves = moves
-        .into_iter()
-        .filter(|_move| {
-            game.push(*_move);
-            let condition = !game.is_targeted(game.get_king_position(player), player);
-            game.pop(*_move);
-            condition
-        })
-        .collect();
+    game.get_moves(&mut moves, true);
 
     // If there is only one move available don't bother searching
     if moves.len() == 1 {
@@ -154,7 +131,7 @@ fn main() {
     } else if arg == "auto" {
         loop {
             let mut moves = ArrayVec::new();
-            game.get_moves(&mut moves);
+            game.get_moves(&mut moves, true);
             println!("{}", game.get_pgn());
             dbg!(game.clone());
             let _move = get_best_move(&mut game, depth);
@@ -203,7 +180,7 @@ fn main() {
                 let pos2 = pos2.unwrap_or(Position::new(0, 0).unwrap());
 
                 let mut moves = ArrayVec::new();
-                game.get_moves(&mut moves);
+                game.get_moves(&mut moves, true);
                 let _move = moves.iter().find(|_move| match _move {
                     Move::Normal { start, end, .. } => *start == pos1 && *end == pos2,
                     Move::Promovation { start, end, .. } => *start == pos1 && *end == pos2,
@@ -256,7 +233,7 @@ fn main() {
                 let pos2 = pos2.unwrap_or(Position::new(0, 0).unwrap());
 
                 let mut moves = ArrayVec::new();
-                game.get_moves(&mut moves);
+                game.get_moves(&mut moves, true);
                 let _move = moves.iter().find(|_move| match _move {
                     Move::Normal { start, end, .. } => *start == pos1 && *end == pos2,
                     Move::Promovation { start, end, .. } => *start == pos1 && *end == pos2,

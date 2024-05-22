@@ -523,7 +523,7 @@ impl ChessGame {
         };
     }
 
-    pub fn get_moves(&mut self, mut moves: &mut ArrayVec<Move, 128>) {
+    pub fn get_moves(&mut self, mut moves: &mut ArrayVec<Move, 128>, verify_king: bool) {
         let king_place = self.get_position(self.get_king_position(self.current_player));
         if !king_place.is_some_and(|piece| piece.piece_type == PieceTypes::King) {
             // no available moves;
@@ -540,6 +540,22 @@ impl ChessGame {
                             piece.get_moves(&mut moves, self, pos);
                         }
                     }
+                }
+            }
+        }
+        // If verify_king then remove moves which put the king in check (invalid moves)
+        if verify_king {
+            let mut keep_index = 0;
+            let player = self.current_player;
+            for index in 0..moves.len() {
+                // SAFETY: 0 <= keep_index <= index < moves.len()
+                let _move = unsafe { *moves.get_unchecked(index) };
+                self.push(_move);
+                let condition = !self.is_targeted(self.get_king_position(player), player);
+                self.pop(_move);
+                if condition {
+                    unsafe { *moves.get_unchecked_mut(keep_index) = _move };
+                    keep_index += 1;
                 }
             }
         }
