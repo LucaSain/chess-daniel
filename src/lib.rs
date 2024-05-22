@@ -42,6 +42,32 @@ pub enum Move {
     }, // No en passant
 }
 
+// Information about the state of the game at this moment
+#[derive(Clone, Copy)]
+pub struct GameState {
+    en_passant: i8,
+    white_moved_king: bool,
+    black_moved_king: bool,
+    white_moved_rook_king: bool,
+    black_moved_rook_king: bool,
+    white_moved_rook_queen: bool,
+    black_moved_rook_queen: bool,
+}
+
+impl Default for GameState {
+    fn default() -> Self {
+        GameState {
+            en_passant: -1,
+            white_moved_king: false,
+            black_moved_king: false,
+            white_moved_rook_king: false,
+            black_moved_rook_king: false,
+            white_moved_rook_queen: false,
+            black_moved_rook_queen: false,
+        }
+    }
+}
+
 #[derive(Clone)]
 // all fields are public for debugging
 // TODO: remove pub
@@ -50,9 +76,8 @@ pub struct ChessGame {
     pub current_player: Players,
     pub board: [[Option<Piece>; 8]; 8],
     king_positions: [Position; 2],
-    has_castled: [bool; 2],
     pub move_stack: Vec<Move>,
-    pub en_passant_stack: ArrayVec<i8, 256>,
+    pub state: ArrayVec<GameState, 256>,
 }
 
 impl Players {
@@ -97,16 +122,15 @@ impl ChessGame {
                 ],
             ],
             move_stack: Vec::with_capacity(1000),
-            has_castled: [false; 2],
             king_positions: [
                 Position::new(0, 4).unwrap(),
                 Position::new(7, 4).unwrap(),
             ],
             current_player: Players::White,
             score: 0,
-            en_passant_stack: ArrayVec::new(),
+            state: ArrayVec::new(),
         };
-        game.en_passant_stack.push(-1);
+        game.state.push(GameState::default());
         game
     }
 
@@ -160,24 +184,9 @@ impl ChessGame {
         }
     }
 
-    pub fn get_castled(&self, player: Players) -> bool {
-        // SAFETY: Hardcoded values are valid
-        unsafe {
-            match player {
-                Players::White => *self.has_castled.get_unchecked(0),
-                Players::Black => *self.has_castled.get_unchecked(1),
-            }
-        }
-    }
-
-    fn set_castled(&mut self, player: Players, value: bool) {
-        // SAFETY: Hardcoded values are valid
-        unsafe {
-            match player {
-                Players::White => *self.has_castled.get_unchecked_mut(0) = value,
-                Players::Black => *self.has_castled.get_unchecked_mut(1) = value,
-            }
-        }
+    pub fn state(&self) -> &GameState {
+        // SAFETY: There should always be a valid state
+        unsafe { self.state.last().unwrap_unchecked() }
     }
 
     pub fn push_history(&mut self, _move: Move) {
@@ -187,7 +196,7 @@ impl ChessGame {
     }
 
     pub fn push(&mut self, _move: Move) {
-        let mut valid_en_passant = -1;
+        let mut state = *self.state();
         match _move {
             #[rustfmt::skip]
             Move::Normal { piece, start, end, .. } => {
@@ -196,11 +205,27 @@ impl ChessGame {
 
                 if piece.piece_type == PieceTypes::King {
                     self.set_king_position(self.current_player, end);
+                    match self.current_player {
+                        Players::White => state.white_moved_king = true,
+                        Players::Black => state.black_moved_king = true,
+                    }
+                } else if piece.piece_type == PieceTypes::Rook {
+                    if start.col() == 0 {
+                        match self.current_player {
+                            Players::White => state.white_moved_rook_queen = true,
+                            Players::Black => state.black_moved_rook_queen = true,
+                        }
+                    } else if start.col() == 7 {
+                        match self.current_player {
+                            Players::White => state.white_moved_rook_king = true,
+                            Players::Black => state.black_moved_rook_king = true,
+                        }
+                    }
                 }
 
-                valid_en_passant =
-                if piece.piece_type == PieceTypes::Pawn && i8::abs(end.row() - start.row()) == 2
-                    { start.col() } else { -1 }
+                state.en_passant = 
+                    if piece.piece_type == PieceTypes::Pawn && i8::abs(end.row() - start.row()) == 2 
+                        { start.col() } else { -1 }
             }
             #[rustfmt::skip]
             Move::Promovation { owner, start, end, .. } => {
@@ -275,9 +300,19 @@ impl ChessGame {
                         owner,
                     }),
                 );
-
-                self.set_castled(self.current_player, true);
                 self.set_king_position(self.current_player, new_king);
+                match self.current_player {
+                    Players::White => {
+                        state.white_moved_king = true;
+                        state.white_moved_rook_king = true;
+                        state.white_moved_rook_queen = true;
+                    }
+                    Players::Black => {
+                        state.black_moved_king = true;
+                        state.black_moved_rook_king = true;
+                        state.black_moved_rook_queen = true;
+                    }
+                }
             }
             Move::CastlingShort { owner } => {
                 let row = match owner {
@@ -312,14 +347,25 @@ impl ChessGame {
                     }),
                 );
 
-                self.set_castled(self.current_player, true);
                 self.set_king_position(self.current_player, new_king);
+                match self.current_player {
+                    Players::White => {
+                        state.white_moved_king = false;
+                        state.white_moved_rook_king = false;
+                        state.white_moved_rook_queen = false;
+                    }
+                    Players::Black => {
+                        state.black_moved_king = false;
+                        state.black_moved_rook_king = false;
+                        state.black_moved_rook_queen = false;
+                    }
+                }
             }
         };
         self.current_player = self.current_player.the_other();
         // SAFETY: The game should not be longer than 256 moves
         unsafe {
-            self.en_passant_stack.push_unchecked(valid_en_passant);
+            self.state.push_unchecked(state);
         }
     }
 
@@ -333,7 +379,7 @@ impl ChessGame {
     }
 
     pub fn pop(&mut self, _move: Move) {
-        self.en_passant_stack.pop();
+        self.state.pop();
         self.current_player = self.current_player.the_other();
 
         match _move {
@@ -426,7 +472,6 @@ impl ChessGame {
                     }),
                 );
 
-                self.set_castled(self.current_player, false);
                 self.set_king_position(owner, old_king);
             }
             Move::CastlingShort { owner } => {
@@ -462,7 +507,6 @@ impl ChessGame {
                     }),
                 );
 
-                self.set_castled(self.current_player, false);
                 self.set_king_position(owner, old_king);
             }
         };
