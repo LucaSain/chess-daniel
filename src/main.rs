@@ -3,18 +3,12 @@ use std::cmp::Ordering;
 use arrayvec::ArrayVec;
 use chess::*;
 
-fn get_best_move_score(
-    game: &mut ChessGame,
-    depth: u8,
-    mut alpha: i32,
-    beta: i32,
-    last_capture: Option<Position>,
-) -> i32 {
+fn get_best_move_score(game: &mut ChessGame, depth: u8, mut alpha: i32, beta: i32) -> i32 {
     if depth <= 0 {
         return game.score * (game.current_player as i32);
     }
     let player = game.current_player;
-
+    let state = *game.state();
     let mut moves = ArrayVec::new();
     game.get_moves(&mut moves);
 
@@ -41,16 +35,8 @@ fn get_best_move_score(
         // If there is only one move available push it and don't decrease depth
         // SAFETY: Length is 1
         let _move = unsafe { *moves.get_unchecked(0) };
-        let capture = match _move {
-            Move::Normal {
-                end,
-                captured_piece,
-                ..
-            } => captured_piece.map(|_| end),
-            _ => None,
-        };
         game.push(_move);
-        let score = -get_best_move_score(game, depth, -beta, -alpha, capture);
+        let score = -get_best_move_score(game, depth, -beta, -alpha);
         game.pop(_move);
         return score;
     }
@@ -59,7 +45,7 @@ fn get_best_move_score(
     if depth >= 5 {
         moves.sort_by_cached_key(|a| {
             game.push(*a);
-            let score = get_best_move_score(game, depth - 5, -beta, -alpha, None);
+            let score = get_best_move_score(game, depth - 5, -beta, -alpha);
             game.pop(*a);
             score
         })
@@ -78,7 +64,7 @@ fn get_best_move_score(
                 } => {
                     if let Some(cap_piece_a) = capture_a {
                         if let Some(cap_piece_b) = capture_b {
-                            if let Some(pos) = last_capture {
+                            if let Some(pos) = state.last_position {
                                 if pos == *end_b {
                                     return Ordering::Greater;
                                 }
@@ -107,22 +93,8 @@ fn get_best_move_score(
     let mut best_score = -1000000000;
     for _move in moves.iter() {
         let _move = *_move;
-        let capture = match _move {
-            Move::Normal {
-                end,
-                captured_piece,
-                ..
-            } => captured_piece.map(|_| end),
-            _ => None,
-        };
         game.push(_move);
-        best_score = best_score.max(-get_best_move_score(
-            game,
-            depth - 1,
-            -beta,
-            -alpha,
-            capture,
-        ));
+        best_score = best_score.max(-get_best_move_score(game, depth - 1, -beta, -alpha));
         game.pop(_move);
         alpha = alpha.max(best_score);
         if alpha >= beta {
@@ -159,7 +131,7 @@ fn get_best_move(game: &mut ChessGame, depth: u8) -> (Option<Move>, i32) {
     for _move in moves {
         game.push(_move);
         // Initially alpha == beta
-        let score = -get_best_move_score(game, depth - 1, i32::MIN + 1, -best_score, None);
+        let score = -get_best_move_score(game, depth - 1, i32::MIN + 1, -best_score);
         game.pop(_move);
         if score > best_score {
             best_score = score;

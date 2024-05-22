@@ -52,6 +52,7 @@ pub struct GameState {
     black_moved_rook_king: bool,
     white_moved_rook_queen: bool,
     black_moved_rook_queen: bool,
+    pub last_position: Option<Position>,
 }
 
 impl Default for GameState {
@@ -64,6 +65,7 @@ impl Default for GameState {
             black_moved_rook_king: false,
             white_moved_rook_queen: false,
             black_moved_rook_queen: false,
+            last_position: None,
         }
     }
 }
@@ -197,11 +199,16 @@ impl ChessGame {
 
     pub fn push(&mut self, _move: Move) {
         let mut state = *self.state();
+        state.en_passant = -1;
         match _move {
             #[rustfmt::skip]
-            Move::Normal { piece, start, end, .. } => {
+            Move::Normal { piece, start, end, captured_piece } => {
                 self.set_position(start, None);
                 self.set_position(end, Some(piece));
+
+                if captured_piece.is_some() {
+                    state.last_position = Some(end);
+                }
 
                 if piece.piece_type == PieceTypes::King {
                     self.set_king_position(self.current_player, end);
@@ -228,7 +235,7 @@ impl ChessGame {
                         { start.col() } else { -1 }
             }
             #[rustfmt::skip]
-            Move::Promovation { owner, start, end, .. } => {
+            Move::Promovation { owner, start, end, captured_piece } => {
                 self.set_position(start, None);
                 self.set_position(
                     end,
@@ -237,6 +244,10 @@ impl ChessGame {
                         piece_type: PieceTypes::Queen,
                     }),
                 );
+                
+                if captured_piece.is_some() {
+                    state.last_position = Some(end);
+                }
             }
             Move::EnPassant {
                 owner,
