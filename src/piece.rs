@@ -268,8 +268,13 @@ impl Piece {
                         );
                     }
                     // SAFETY: Theses are hardcoded valid positions
-                    let pos_long =
-                        unsafe { [Position::new_unsafe(row, 2), Position::new_unsafe(row, 3)] };
+                    let pos_long = unsafe {
+                        [
+                            Position::new_unsafe(row, 1),
+                            Position::new_unsafe(row, 2),
+                            Position::new_unsafe(row, 3),
+                        ]
+                    };
 
                     if pos_long.iter().all(|pos| {
                         game.get_position(*pos).is_none()
