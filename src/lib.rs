@@ -694,56 +694,7 @@ impl ChessGame {
         let moves: Vec<_> = self
             .move_stack
             .iter()
-            .map(|_move| match _move {
-                Move::Normal {
-                    piece,
-                    start,
-                    end,
-                    captured_piece,
-                } => {
-                    let mut s = String::new();
-                    s.push_str(piece.as_char_ascii());
-                    s.push(((start.col()) as u8 + b'a') as char);
-                    if captured_piece.is_some() {
-                        s.push('x');
-                    }
-                    s.push(((end.col()) as u8 + b'a') as char);
-                    s.push_str((end.row() + 1).to_string().as_str());
-                    s
-                }
-                Move::CastlingShort { .. } => String::from_str("O-O").unwrap(),
-                Move::CastlingLong { .. } => String::from_str("O-O-O").unwrap(),
-                Move::EnPassant {
-                    start_col,
-                    end_col,
-                    owner,
-                } => {
-                    let mut s = String::new();
-                    s.push((*start_col as u8 + b'a') as char);
-                    s.push('x');
-                    s.push((*end_col as u8 + b'a') as char);
-                    match owner {
-                        Players::White => s.push('6'),
-                        Players::Black => s.push('3'),
-                    };
-                    s
-                }
-                Move::Promovation {
-                    end,
-                    captured_piece,
-                    ..
-                } => {
-                    let mut s = String::new();
-                    if captured_piece.is_some() {
-                        s.push('x');
-                    }
-                    s.push(((end.col()) as u8 + b'a') as char);
-                    s.push_str((end.row() + 1).to_string().as_str());
-                    s.push('=');
-                    s.push('Q');
-                    s
-                }
-            })
+            .map(|_move| _move.pgn_notation())
             .collect();
 
         let mut s = String::new();
@@ -759,6 +710,111 @@ impl ChessGame {
         }
 
         s
+    }
+}
+
+impl Move {
+    pub fn uci_notation(&self) -> String {
+        let mut s = String::new();
+        match self {
+            Move::Normal { start, end, .. } => {
+                s.push((start.col() as u8 + b'a') as char);
+                s.push((start.row() as u8 + b'1') as char);
+                s.push((end.col() as u8 + b'a') as char);
+                s.push((end.row() as u8 + b'1') as char);
+            }
+            Move::Promovation { start, end, .. } => {
+                s.push((start.col() as u8 + b'a') as char);
+                s.push((start.row() as u8 + b'1') as char);
+                s.push((end.col() as u8 + b'a') as char);
+                s.push((end.row() as u8 + b'1') as char);
+                s.push('q');
+            }
+            Move::CastlingShort { owner } => {
+                let row = match owner {
+                    Players::White => '1',
+                    Players::Black => '8',
+                };
+                s.push('e');
+                s.push(row);
+                s.push('g');
+                s.push(row);
+            }
+            Move::CastlingLong { owner } => {
+                let row = match owner {
+                    Players::White => '1',
+                    Players::Black => '8',
+                };
+                s.push('e');
+                s.push(row);
+                s.push('c');
+                s.push(row);
+            }
+            Move::EnPassant { owner, start_col, end_col } => {
+                let (start_row, end_row) = match owner {
+                    Players::White => ('5', '6'),
+                    Players::Black => ('4', '3'),
+                };
+                s.push((*start_col as u8 + b'a') as char);
+                s.push(start_row);
+                s.push((*end_col as u8 + b'a') as char);
+                s.push(end_row);
+            }
+        }
+        s
+    }
+
+    pub fn pgn_notation(&self) -> String {
+        match self {
+            Move::Normal {
+                piece,
+                start,
+                end,
+                captured_piece,
+            } => {
+                let mut s = String::new();
+                s.push_str(piece.as_char_ascii());
+                s.push(((start.col()) as u8 + b'a') as char);
+                if captured_piece.is_some() {
+                    s.push('x');
+                }
+                s.push(((end.col()) as u8 + b'a') as char);
+                s.push_str((end.row() + 1).to_string().as_str());
+                s
+            }
+            Move::CastlingShort { .. } => String::from_str("O-O").unwrap(),
+            Move::CastlingLong { .. } => String::from_str("O-O-O").unwrap(),
+            Move::EnPassant {
+                start_col,
+                end_col,
+                owner,
+            } => {
+                let mut s = String::new();
+                s.push((*start_col as u8 + b'a') as char);
+                s.push('x');
+                s.push((*end_col as u8 + b'a') as char);
+                match owner {
+                    Players::White => s.push('6'),
+                    Players::Black => s.push('3'),
+                };
+                s
+            }
+            Move::Promovation {
+                end,
+                captured_piece,
+                ..
+            } => {
+                let mut s = String::new();
+                if captured_piece.is_some() {
+                    s.push('x');
+                }
+                s.push(((end.col()) as u8 + b'a') as char);
+                s.push_str((end.row() + 1).to_string().as_str());
+                s.push('=');
+                s.push('Q');
+                s
+            }
+        }
     }
 }
 
@@ -800,13 +856,13 @@ impl std::fmt::Debug for ChessGame {
             .enumerate()
             .rev()
             .try_for_each(|(i, row)| -> std::fmt::Result {
-                write!(f, "{} ", i)?;
+                write!(f, "{} ", i + 1)?;
                 row.iter().try_for_each(|place| -> std::fmt::Result {
                     write!(f, "|{}", place.map(|piece| piece.as_char()).unwrap_or(' '))
                 })?;
                 write!(f, "|\n")
             })?;
-        write!(f, "\n   0 1 2 3 4 5 6 7\n")
+        write!(f, "\n   a b c d e f g h\n")
     }
 }
 
