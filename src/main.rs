@@ -10,7 +10,7 @@ fn get_best_move_score(game: &mut ChessGame, depth: u8, mut alpha: i32, beta: i3
     let player = game.current_player;
     let state = *game.state();
     let mut moves = ArrayVec::new();
-    game.get_moves(&mut moves, depth >= 2);
+    game.get_moves(&mut moves, depth >= 3);
 
     if moves.is_empty() {
         if !game.is_targeted(game.get_king_position(player), player) {
