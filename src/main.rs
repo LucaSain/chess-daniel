@@ -17,7 +17,7 @@ fn get_best_move_score(game: &mut ChessGame, depth: u8, mut alpha: i32, beta: i3
             return 0;
         } else {
             // The earlier the mate the worse the score for the losing player
-            return i32::MIN + 100 - depth as i32;
+            return i32::MIN + game.state.len() as i32;
         }
     } else if moves.len() == 1 {
         // If there is only one move available push it and don't decrease depth
