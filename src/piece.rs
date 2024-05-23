@@ -264,7 +264,8 @@ impl Piece {
                                 }
                             );
                         }
-                    } else if rook_queen_not_moved {
+                    }
+                    if rook_queen_not_moved {
                         // SAFETY: Theses are hardcoded valid positions
                         let (pos1, pos2, pos3) = unsafe {
                             (
