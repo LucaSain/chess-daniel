@@ -711,6 +711,23 @@ impl ChessGame {
 
         s
     }
+
+    pub fn get_uci(&self) -> String {
+        let moves: Vec<_> = self
+            .move_stack
+            .iter()
+            .map(|_move| _move.uci_notation())
+            .collect();
+        
+        let mut s = String::new();
+
+        for _move in moves{
+            s.push_str(_move.as_str());
+            s.push(' ');
+        }
+
+        s
+    }
 }
 
 impl Move {
@@ -750,7 +767,11 @@ impl Move {
                 s.push('c');
                 s.push(row);
             }
-            Move::EnPassant { owner, start_col, end_col } => {
+            Move::EnPassant {
+                owner,
+                start_col,
+                end_col,
+            } => {
                 let (start_row, end_row) = match owner {
                     Players::White => ('5', '6'),
                     Players::Black => ('4', '3'),
@@ -816,6 +837,66 @@ impl Move {
             }
         }
     }
+
+    pub fn from_uci_notation(s: &str, game: &ChessGame) -> Result<Self, &'static str> {
+        if s.len() != 4 && s.len() != 5 {
+            return Err("Invalid move length");
+        } else if s.chars().nth(4).is_some_and(|c| c != 'q') {
+            return Err("Only promovations to queen are allowed for now");
+        } else if s == "e1g1" {
+            return Ok(Move::CastlingShort {
+                owner: Players::White,
+            });
+        } else if s == "e8g8" {
+            return Ok(Move::CastlingShort {
+                owner: Players::Black,
+            });
+        } else if s == "e1c1" {
+            return Ok(Move::CastlingLong {
+                owner: Players::White,
+            });
+        } else if s == "e8c8" {
+            return Ok(Move::CastlingLong {
+                owner: Players::Black,
+            });
+        } else {
+            let mut chars = s.bytes();
+            let start_col = chars.next().unwrap().wrapping_sub(b'a') as i8;
+            let start_row = chars.next().unwrap().wrapping_sub(b'1') as i8;
+            let end_col = chars.next().unwrap().wrapping_sub(b'a') as i8;
+            let end_row = chars.next().unwrap().wrapping_sub(b'1') as i8;
+
+            let start = Position::new(start_row, start_col);
+            let end = Position::new(end_row, end_col);
+
+            if start.is_none() || end.is_none() {
+                return Err("Invalid position");
+            }
+
+            let start = start.unwrap();
+            let end = end.unwrap();
+
+            if s.len() == 5 {
+                return Ok(Move::Promovation {
+                    owner: game.current_player,
+                    start,
+                    end,
+                    captured_piece: *game.get_position(end),
+                });
+            }
+
+            if let Some(piece) = *game.get_position(start) {
+                return Ok(Move::Normal {
+                    piece,
+                    start,
+                    end,
+                    captured_piece: *game.get_position(end),
+                });
+            }
+
+            return Err("Start square is empty");
+        }   
+    }
 }
 
 impl std::fmt::Debug for Piece {
@@ -843,6 +924,8 @@ impl std::fmt::Debug for Move {
                 end.col(),
                 captured_piece.map(|piece| format!("{:?} {:?}", piece.owner, piece.piece_type))
             ),
+            Move::CastlingLong { owner } => write!(f, "castling long {:?} ", *owner),
+            Move::CastlingShort { owner } => write!(f, "castling short {:?} ", *owner),
             _ => write!(f, "not supported"),
         }
     }
