@@ -544,6 +544,7 @@ impl ChessGame {
             }
         }
         // If verify_king then remove moves which put the king in check (invalid moves)
+        // We remove invalid moves by overwriting them with the following valid moves
         if verify_king {
             let mut keep_index = 0;
             let player = self.current_player;
@@ -554,10 +555,12 @@ impl ChessGame {
                 let condition = !self.is_targeted(self.get_king_position(player), player);
                 self.pop(_move);
                 if condition {
+                    // Keep this move
                     unsafe { *moves.get_unchecked_mut(keep_index) = _move };
                     keep_index += 1;
                 }
             }
+            unsafe { moves.set_len(keep_index) };
         }
     }
 
