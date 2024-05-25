@@ -236,8 +236,6 @@ impl ChessGame {
         };
 
         game.state.push(state);
-        dbg!(game.clone());
-        dbg!(game.state.clone());
         Ok(game)
     }
 
