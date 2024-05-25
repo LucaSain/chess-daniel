@@ -186,3 +186,6 @@ fn main() {
         }
     }
 }
+
+#[cfg(test)]
+mod performance_test;
