@@ -13,6 +13,7 @@ pub enum Players {
     White = 1,
     Black = -1,
 }
+
 #[derive(PartialEq, Eq, Clone, Copy, Hash)]
 #[repr(align(8))]
 pub enum Move {
@@ -39,10 +40,10 @@ pub enum Move {
         owner: Players,
         start_col: i8,
         end_col: i8,
-    }, // No en passant
+    },
 }
 
-// Information about the state of the game at this moment
+/// Information about the state of the game at this moment
 #[derive(Clone, Copy, Debug)]
 pub struct GameState {
     en_passant: i8,
@@ -67,15 +68,13 @@ impl Default for GameState {
 }
 
 #[derive(Clone)]
-// all fields are public for debugging
-// TODO: remove pub
 pub struct ChessGame {
     pub score: i32,
     pub current_player: Players,
-    pub board: [[Option<Piece>; 8]; 8],
-    king_positions: [Position; 2],
     pub move_stack: Vec<Move>,
-    pub state: ArrayVec<GameState, 256>,
+    board: [[Option<Piece>; 8]; 8],
+    king_positions: [Position; 2],
+    state: ArrayVec<GameState, 256>,
 }
 
 impl Players {
@@ -87,8 +86,8 @@ impl Players {
     }
 }
 
-impl ChessGame {
-    pub fn new() -> Self {
+impl Default for ChessGame {
+    fn default() -> Self {
         #[rustfmt::skip]
         let mut game = ChessGame {
             board: [
@@ -130,9 +129,12 @@ impl ChessGame {
         };
         game.state.push(GameState::default());
         game
+                
     }
+}
 
-    pub fn from_fen(fen: &str) -> Result<ChessGame, &str> {
+impl ChessGame {
+    pub fn new(fen: &str) -> Result<ChessGame, &str> {
         let mut terms = fen.split_ascii_whitespace();
 
         let mut board = [[None; 8]; 8];
@@ -195,8 +197,7 @@ impl ChessGame {
         };
 
         if let Some(castling_rights) = terms.next() {
-            let mut rights = castling_rights.chars();
-            while let Some(right) = rights.next() {
+            for right in castling_rights.chars() {
                 match right {
                     'K' => state.white_king_castling = true,
                     'Q' => state.white_queen_castling = true,
@@ -238,6 +239,10 @@ impl ChessGame {
         Ok(game)
     }
 
+    pub fn len(&self) -> usize {
+        self.state.len()
+    }
+
     pub fn get_position(&self, position: Position) -> &Option<Piece> {
         // SAFETY: position is always valid
         unsafe {
@@ -247,8 +252,7 @@ impl ChessGame {
         }
     }
 
-    // pub for debugging
-    pub fn set_position(&mut self, position: Position, new_place: Option<Piece>) {
+    fn set_position(&mut self, position: Position, new_place: Option<Piece>) {
         // SAFETY: position is always valid
         unsafe {
             let place = self
@@ -339,6 +343,7 @@ impl ChessGame {
                 }
 
                 if captured_piece.is_some_and(|piece| piece.piece_type == PieceTypes::Rook) {
+                    // SAFETY: Hardcoded positions are valid
                     let (pos1, pos2, pos3, pos4) = unsafe {
                         (
                         Position::new_unsafe(0, 0),
@@ -403,7 +408,7 @@ impl ChessGame {
                         new_pawn,
                         Some(Piece {
                             piece_type: PieceTypes::Pawn,
-                            owner: owner,
+                            owner,
                         }),
                     )
                 }
@@ -570,7 +575,7 @@ impl ChessGame {
                         old_pawn,
                         Some(Piece {
                             piece_type: PieceTypes::Pawn,
-                            owner: owner,
+                            owner,
                         }),
                     );
                 }
@@ -648,7 +653,7 @@ impl ChessGame {
         };
     }
 
-    pub fn get_moves(&mut self, mut moves: &mut ArrayVec<Move, 128>, verify_king: bool) {
+    pub fn get_moves(&mut self, moves: &mut ArrayVec<Move, 128>, verify_king: bool) {
         let king_place = self.get_position(self.get_king_position(self.current_player));
         if !king_place.is_some_and(|piece| piece.piece_type == PieceTypes::King) {
             // no available moves;
@@ -662,7 +667,7 @@ impl ChessGame {
                     if let Some(piece) = self.board.get_unchecked(r).get_unchecked(c) {
                         if piece.owner == self.current_player {
                             let pos = Position::new_unsafe(r as i8, c as i8);
-                            piece.get_moves(&mut moves, self, pos);
+                            piece.get_moves(moves, self, pos);
                         }
                     }
                 }
@@ -689,7 +694,7 @@ impl ChessGame {
         }
     }
 
-    // Returns if player's position is targeted by enemy pieces
+    /// Returns if player's position is targeted by enemy pieces
     pub fn is_targeted(&self, position: Position, player: Players) -> bool {
         // Verifiy for kings
         for delta in [
@@ -983,23 +988,23 @@ impl Move {
 
     pub fn from_uci_notation(s: &str, game: &ChessGame) -> Result<Self, &'static str> {
         if s.len() != 4 && s.len() != 5 {
-            return Err("Invalid move length");
+            Err("Invalid move length")
         } else if s == "e1g1" {
-            return Ok(Move::CastlingShort {
+            Ok(Move::CastlingShort {
                 owner: Players::White,
-            });
+            })
         } else if s == "e8g8" {
-            return Ok(Move::CastlingShort {
+            Ok(Move::CastlingShort {
                 owner: Players::Black,
-            });
+            })
         } else if s == "e1c1" {
-            return Ok(Move::CastlingLong {
+            Ok(Move::CastlingLong {
                 owner: Players::White,
-            });
+            })
         } else if s == "e8c8" {
-            return Ok(Move::CastlingLong {
+            Ok(Move::CastlingLong {
                 owner: Players::Black,
-            });
+            })
         } else {
             let mut chars = s.bytes();
             let start_col = chars.next().unwrap().wrapping_sub(b'a') as i8;
@@ -1044,7 +1049,7 @@ impl Move {
                 });
             }
 
-            return Err("Start square is empty");
+            Err("Start square is empty")
         }
     }
 }
@@ -1083,7 +1088,7 @@ impl std::fmt::Debug for Move {
 
 impl std::fmt::Debug for ChessGame {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "\n")?;
+        writeln!(f)?;
         self.board
             .iter()
             .enumerate()
@@ -1093,8 +1098,8 @@ impl std::fmt::Debug for ChessGame {
                 row.iter().try_for_each(|place| -> std::fmt::Result {
                     write!(f, "|{}", place.map(|piece| piece.as_char()).unwrap_or(' '))
                 })?;
-                write!(f, "|\n")
+                writeln!(f, "|")
             })?;
-        write!(f, "\n   a b c d e f g h\n")
+        writeln!(f, "\n   a b c d e f g h")
     }
 }

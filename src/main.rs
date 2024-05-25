@@ -4,7 +4,7 @@ use arrayvec::ArrayVec;
 use chess::*;
 
 fn get_best_move_score(game: &mut ChessGame, depth: u8, mut alpha: i32, beta: i32) -> i32 {
-    if depth <= 0 {
+    if depth == 0 {
         return game.score * (game.current_player as i32);
     }
     let player = game.current_player;
@@ -17,7 +17,7 @@ fn get_best_move_score(game: &mut ChessGame, depth: u8, mut alpha: i32, beta: i3
             return 0;
         } else {
             // The earlier the mate the worse the score for the losing player
-            return i32::MIN + game.state.len() as i32;
+            return i32::MIN + game.len() as i32;
         }
     } else if moves.len() == 1 {
         // If there is only one move available push it and don't decrease depth
@@ -133,13 +133,13 @@ fn uci_talk() {
     lines.next().unwrap().unwrap();
     println!("readyok");
     loop {
-        let mut game = ChessGame::new();
+        let mut game = ChessGame::default();
         let line = lines.next().unwrap().unwrap();
         let mut words = line.split_whitespace();
         words.next().unwrap();
         words.next().unwrap();
-        if let Some(_) = words.next() {
-            while let Some(move_str) = words.next() {
+        if words.next().is_some() {
+            for move_str in words {
                 let _move = Move::from_uci_notation(move_str, &game).unwrap();
                 let mut moves = ArrayVec::new();
                 game.get_moves(&mut moves, true);
@@ -161,9 +161,9 @@ fn uci_talk() {
 fn main() {
     let mut args = std::env::args();
     args.next();
-    let mut game = ChessGame::new();
+    let mut game = ChessGame::default();
     let next_arg = args.next();
-    if let None = next_arg {
+    if next_arg.is_none() {
         uci_talk();
         return;
     }
