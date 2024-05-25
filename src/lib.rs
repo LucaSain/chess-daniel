@@ -653,7 +653,10 @@ impl ChessGame {
         };
     }
 
+    /// `moves` will be cleared by this function to be sure it has room for all moves
     pub fn get_moves(&mut self, moves: &mut ArrayVec<Move, 128>, verify_king: bool) {
+        moves.clear();
+
         let king_place = self.get_position(self.get_king_position(self.current_player));
         if !king_place.is_some_and(|piece| piece.piece_type == PieceTypes::King) {
             // no available moves;
@@ -662,7 +665,7 @@ impl ChessGame {
 
         for r in 0..8 {
             for c in 0..8 {
-                // SAFETY: Theses are hardcoded valid positions
+                // SAFETY: Theses are hardcoded valid positions, and moves is empty at the beginning
                 unsafe {
                     if let Some(piece) = self.board.get_unchecked(r).get_unchecked(c) {
                         if piece.owner == self.current_player {

@@ -82,7 +82,14 @@ impl Piece {
         }
     }
 
-    pub fn get_moves(&self, moves: &mut ArrayVec<Move, 128>, game: &ChessGame, pos: Position) {
+    /// # Safety
+    /// The `moves` buffer must be able to hold all available moves
+    pub unsafe fn get_moves(
+        &self,
+        moves: &mut ArrayVec<Move, 128>,
+        game: &ChessGame,
+        pos: Position,
+    ) {
         match self.piece_type {
             PieceTypes::Pawn => {
                 let first_row = match self.owner {
