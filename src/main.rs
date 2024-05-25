@@ -1,7 +1,11 @@
-use std::{cmp::Ordering, io::stdin};
+mod chess_game;
+mod piece;
+mod position;
 
 use arrayvec::ArrayVec;
-use chess::*;
+use chess_game::*;
+use position::*;
+use std::{cmp::Ordering, io::stdin};
 
 fn get_best_move_score(game: &mut ChessGame, depth: u8, mut alpha: i32, beta: i32) -> i32 {
     if depth == 0 {

@@ -2,11 +2,8 @@ use std::str::FromStr;
 
 use arrayvec::ArrayVec;
 
-mod piece;
-pub use piece::*;
-
-mod position;
-pub use position::*;
+use crate::piece::*;
+use crate::position::*;
 
 #[derive(PartialEq, Eq, Clone, Copy, Debug, Hash)]
 pub enum Players {
@@ -46,11 +43,11 @@ pub enum Move {
 /// Information about the state of the game at this moment
 #[derive(Clone, Copy, Debug)]
 pub struct GameState {
-    en_passant: i8,
-    white_king_castling: bool,
-    white_queen_castling: bool,
-    black_king_castling: bool,
-    black_queen_castling: bool,
+    pub en_passant: i8,
+    pub white_king_castling: bool,
+    pub white_queen_castling: bool,
+    pub black_king_castling: bool,
+    pub black_queen_castling: bool,
     pub last_position: Option<Position>,
 }
 
@@ -78,7 +75,7 @@ pub struct ChessGame {
 }
 
 impl Players {
-    fn the_other(&self) -> Self {
+    pub fn the_other(&self) -> Self {
         match self {
             Self::White => Self::Black,
             Self::Black => Self::White,

@@ -1,6 +1,7 @@
 use arrayvec::ArrayVec;
 
-use super::{ChessGame, Move, Players, Position};
+use crate::chess_game::*;
+use crate::position::*;
 
 #[derive(PartialEq, Eq, Clone, Copy, Debug, Hash, PartialOrd, Ord)]
 pub enum PieceTypes {
