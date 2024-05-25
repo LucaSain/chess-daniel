@@ -129,7 +129,6 @@ impl Default for ChessGame {
         };
         game.state.push(GameState::default());
         game
-                
     }
 }
 
@@ -364,8 +363,8 @@ impl ChessGame {
                     }
                 }
 
-                state.en_passant = 
-                    if piece.piece_type == PieceTypes::Pawn && i8::abs(end.row() - start.row()) == 2 
+                state.en_passant =
+                    if piece.piece_type == PieceTypes::Pawn && i8::abs(end.row() - start.row()) == 2
                         { start.col() } else { -1 }
             }
             #[rustfmt::skip]
@@ -378,7 +377,7 @@ impl ChessGame {
                         piece_type: new_piece,
                     }),
                 );
-                
+
                 if captured_piece.is_some() {
                     state.last_position = Some(end);
                 }
