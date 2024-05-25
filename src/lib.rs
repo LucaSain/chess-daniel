@@ -1098,14 +1098,3 @@ impl std::fmt::Debug for ChessGame {
         write!(f, "\n   a b c d e f g h\n")
     }
 }
-
-// #[cfg(test)]
-// mod tests {
-//     use super::*;
-
-//     #[test]
-//     fn it_works() {
-//         let result = add(2, 2);
-//         assert_eq!(result, 4);
-//     }
-// }
