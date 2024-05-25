@@ -1,6 +1,7 @@
 use arrayvec::ArrayVec;
 
 use crate::chess_game::*;
+use crate::move_struct::*;
 use crate::position::*;
 
 #[derive(PartialEq, Eq, Clone, Copy, Debug, Hash, PartialOrd, Ord)]
@@ -436,5 +437,11 @@ impl Piece {
         };
 
         Ok(Piece { piece_type, owner })
+    }
+}
+
+impl std::fmt::Debug for Piece {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{}", self.as_char())
     }
 }

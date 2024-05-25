@@ -1,9 +1,11 @@
 mod chess_game;
+mod move_struct;
 mod piece;
 mod position;
 
 use arrayvec::ArrayVec;
 use chess_game::*;
+use move_struct::*;
 
 use std::{cmp::Ordering, io::stdin};
 
