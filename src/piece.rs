@@ -385,4 +385,26 @@ impl Piece {
             PieceTypes::Pawn => "",
         }
     }
+
+    pub fn from_char_ascii(piece: char) -> Result<Self, &'static str> {
+        let owner = if piece.is_ascii_lowercase() {
+            Players::Black
+        } else {
+            Players::White
+        };
+
+        let piece_type = match piece.to_ascii_uppercase() {
+            'K' => PieceTypes::King,
+            'Q' => PieceTypes::Queen,
+            'R' => PieceTypes::Rook,
+            'B' => PieceTypes::Bishop,
+            'N' => PieceTypes::Knight,
+            'P' => PieceTypes::Pawn,
+            _ => {
+                return Err("Invalid piece");
+            }
+        };
+
+        Ok(Piece { piece_type, owner })
+    }
 }

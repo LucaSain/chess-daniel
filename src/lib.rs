@@ -43,7 +43,7 @@ pub enum Move {
 }
 
 // Information about the state of the game at this moment
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 pub struct GameState {
     en_passant: i8,
     white_king_castling: bool,
@@ -130,6 +130,115 @@ impl ChessGame {
         };
         game.state.push(GameState::default());
         game
+    }
+
+    pub fn from_fen(fen: &str) -> Result<ChessGame, &str> {
+        let mut terms = fen.split_ascii_whitespace();
+        
+        let mut board = [[None; 8]; 8];
+        let mut white_king_pos = Position::new(0, 0).unwrap();
+        let mut black_king_pos = Position::new(0, 0).unwrap();
+
+        if let Some(pieces) = terms.next() {
+            let mut row = 7;
+            let mut col = 0;
+            for character in pieces.chars() {
+                match character {
+                    '/' => {
+                        if row == 0 {
+                            return Err("Too many rows");
+                        }
+                        col = 0;
+                        row -= 1;
+                    },
+                    piece if piece.is_ascii_alphabetic() => {
+                        if col == 8 {
+                            return Err("Too many columns");
+                        }
+                        let piece = Piece::from_char_ascii(piece)?;
+                        if piece.piece_type == PieceTypes::King {
+                            match piece.owner {
+                                Players::White => white_king_pos = Position::new(row, col).unwrap(),
+                                Players::Black => black_king_pos = Position::new(row, col).unwrap(),
+                            }
+                        }
+                        board[row as usize][col as usize] = Some(piece);
+                        col += 1;
+                    }
+                    empty_count if character.is_ascii_digit() => {
+                        col += (empty_count as u8 - b'0') as i8;
+                    }
+                    _ => return Err("Unknown character met")
+                }
+            }
+        } else {
+            return Err("Invalid FEN");
+        }
+
+        let current_player = if let Some(next_player) = terms.next() {
+            match next_player.chars().next().unwrap() {
+                'w' => Players::White,
+                'b' => Players::Black,
+                _ => return Err("Invalid FEN")
+            }
+        } else {
+            return Err("Invalid FEN");
+        };
+
+        let mut state = GameState {
+            en_passant: -1,
+            white_king_castling: false,
+            white_queen_castling: false,
+            black_king_castling: false,
+            black_queen_castling: false,
+            last_position: None
+        };
+
+        if let Some(castling_rights) = terms.next() {
+            let mut rights = castling_rights.chars();
+            while let Some(right) = rights.next() {
+                match right {
+                    'K' => state.white_king_castling = true,
+                    'Q' => state.white_queen_castling = true,
+                    'k' => state.black_king_castling = true,
+                    'q' => state.black_queen_castling = true,
+                    _ => continue
+                }
+            }
+        } else {
+            return Err("Invalid FEN");
+        }
+
+        if let Some(en_passant) = terms.next() {
+            if en_passant != "-" {
+                let mut chars = en_passant.chars();
+                if let Some(col) = chars.next() {
+                    state.en_passant = ((col as u8) - b'a') as i8;
+                    if !(0..8).contains(&state.en_passant) {
+                        return Err("Invalid FEN");
+                    }
+                } else {
+                    return Err("Invalid FEN");
+                }
+            }
+        } else {
+            return Err("Invalid FEN");
+        }
+
+
+        let mut game = ChessGame {
+            board,
+            move_stack: Vec::with_capacity(1000),
+            king_positions: [white_king_pos, black_king_pos],
+            current_player,
+            score: 0,
+            state: ArrayVec::new(),
+        };
+
+        game.state.push(state);
+        dbg!(game.clone());
+        dbg!(game.state.clone());
+        Ok(game)
     }
 
     pub fn get_position(&self, position: Position) -> &Option<Piece> {
@@ -716,10 +825,10 @@ impl ChessGame {
             .iter()
             .map(|_move| _move.uci_notation())
             .collect();
-        
+
         let mut s = String::new();
 
-        for _move in moves{
+        for _move in moves {
             s.push_str(_move.as_str());
             s.push(' ');
         }
@@ -893,7 +1002,7 @@ impl Move {
             }
 
             return Err("Start square is empty");
-        }   
+        }
     }
 }
 
