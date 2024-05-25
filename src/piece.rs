@@ -227,28 +227,19 @@ impl Piece {
                     }
                 }
                 let state = game.state();
-                let (king_not_moved, rook_king_not_moved, rook_queen_not_moved) =
-                    match game.current_player {
-                        Players::White => (
-                            !state.white_moved_king,
-                            !state.white_moved_rook_king,
-                            !state.white_moved_rook_queen,
-                        ),
-                        Players::Black => (
-                            !state.black_moved_king,
-                            !state.black_moved_rook_king,
-                            !state.black_moved_rook_queen,
-                        ),
-                    };
+                let (king_side_castling, queen_side_castling) = match game.current_player {
+                    Players::White => (state.white_king_castling, state.white_queen_castling),
+                    Players::Black => (state.black_king_castling, state.black_queen_castling),
+                };
                 let row = match game.current_player {
                     Players::White => 0,
                     Players::Black => 7,
                 };
                 // SAFETY: Theses are hardcoded valid positions
                 let king = unsafe { Position::new_unsafe(row, 4) };
-                if king_not_moved && !game.is_targeted(king, game.current_player) {
+                if !game.is_targeted(king, game.current_player) {
                     // SAFETY: Theses are hardcoded valid positions
-                    if rook_king_not_moved {
+                    if king_side_castling {
                         let (pos1, pos2) =
                             unsafe { (Position::new_unsafe(row, 5), Position::new_unsafe(row, 6)) };
 
@@ -265,7 +256,7 @@ impl Piece {
                             );
                         }
                     }
-                    if rook_queen_not_moved {
+                    if queen_side_castling {
                         // SAFETY: Theses are hardcoded valid positions
                         let (pos1, pos2, pos3) = unsafe {
                             (

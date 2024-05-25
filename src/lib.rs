@@ -46,12 +46,10 @@ pub enum Move {
 #[derive(Clone, Copy)]
 pub struct GameState {
     en_passant: i8,
-    white_moved_king: bool,
-    black_moved_king: bool,
-    white_moved_rook_king: bool,
-    black_moved_rook_king: bool,
-    white_moved_rook_queen: bool,
-    black_moved_rook_queen: bool,
+    white_king_castling: bool,
+    white_queen_castling: bool,
+    black_king_castling: bool,
+    black_queen_castling: bool,
     pub last_position: Option<Position>,
 }
 
@@ -59,12 +57,10 @@ impl Default for GameState {
     fn default() -> Self {
         GameState {
             en_passant: -1,
-            white_moved_king: false,
-            black_moved_king: false,
-            white_moved_rook_king: false,
-            black_moved_rook_king: false,
-            white_moved_rook_queen: false,
-            black_moved_rook_queen: false,
+            white_king_castling: true,
+            white_queen_castling: true,
+            black_king_castling: true,
+            black_queen_castling: true,
             last_position: None,
         }
     }
@@ -213,19 +209,25 @@ impl ChessGame {
                 if piece.piece_type == PieceTypes::King {
                     self.set_king_position(self.current_player, end);
                     match self.current_player {
-                        Players::White => state.white_moved_king = true,
-                        Players::Black => state.black_moved_king = true,
+                        Players::White => {
+                            state.white_king_castling = false;
+                            state.white_queen_castling = false;
+                        }
+                        Players::Black =>  {
+                            state.black_king_castling = false;
+                            state.black_queen_castling = false;
+                        }
                     }
                 } else if piece.piece_type == PieceTypes::Rook {
                     if start.col() == 0 {
                         match self.current_player {
-                            Players::White => state.white_moved_rook_queen = true,
-                            Players::Black => state.black_moved_rook_queen = true,
+                            Players::White => state.white_queen_castling = false,
+                            Players::Black => state.black_queen_castling = false,
                         }
                     } else if start.col() == 7 {
                         match self.current_player {
-                            Players::White => state.white_moved_rook_king = true,
-                            Players::Black => state.black_moved_rook_king = true,
+                            Players::White => state.white_king_castling = false,
+                            Players::Black => state.black_king_castling = false,
                         }
                     }
                 }
@@ -314,14 +316,12 @@ impl ChessGame {
                 self.set_king_position(self.current_player, new_king);
                 match self.current_player {
                     Players::White => {
-                        state.white_moved_king = true;
-                        state.white_moved_rook_king = true;
-                        state.white_moved_rook_queen = true;
+                        state.white_king_castling = false;
+                        state.white_queen_castling = false;
                     }
                     Players::Black => {
-                        state.black_moved_king = true;
-                        state.black_moved_rook_king = true;
-                        state.black_moved_rook_queen = true;
+                        state.black_king_castling = false;
+                        state.black_queen_castling = false;
                     }
                 }
             }
@@ -361,14 +361,12 @@ impl ChessGame {
                 self.set_king_position(self.current_player, new_king);
                 match self.current_player {
                     Players::White => {
-                        state.white_moved_king = true;
-                        state.white_moved_rook_king = true;
-                        state.white_moved_rook_queen = true;
+                        state.white_king_castling = false;
+                        state.white_queen_castling = false;
                     }
                     Players::Black => {
-                        state.black_moved_king = true;
-                        state.black_moved_rook_king = true;
-                        state.black_moved_rook_queen = true;
+                        state.black_king_castling = false;
+                        state.black_queen_castling = false;
                     }
                 }
             }
