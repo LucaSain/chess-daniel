@@ -22,9 +22,9 @@ pub enum Move {
         end: Position,
         captured_piece: Option<Piece>,
     },
-    Promovation {
-        // Assumed to alwasys be to queen
+    Promotion {
         owner: Players,
+        new_piece: PieceTypes,
         start: Position,
         end: Position,
         captured_piece: Option<Piece>,
@@ -134,7 +134,7 @@ impl ChessGame {
 
     pub fn from_fen(fen: &str) -> Result<ChessGame, &str> {
         let mut terms = fen.split_ascii_whitespace();
-        
+
         let mut board = [[None; 8]; 8];
         let mut white_king_pos = Position::new(0, 0).unwrap();
         let mut black_king_pos = Position::new(0, 0).unwrap();
@@ -150,7 +150,7 @@ impl ChessGame {
                         }
                         col = 0;
                         row -= 1;
-                    },
+                    }
                     piece if piece.is_ascii_alphabetic() => {
                         if col == 8 {
                             return Err("Too many columns");
@@ -168,7 +168,7 @@ impl ChessGame {
                     empty_count if character.is_ascii_digit() => {
                         col += (empty_count as u8 - b'0') as i8;
                     }
-                    _ => return Err("Unknown character met")
+                    _ => return Err("Unknown character met"),
                 }
             }
         } else {
@@ -179,7 +179,7 @@ impl ChessGame {
             match next_player.chars().next().unwrap() {
                 'w' => Players::White,
                 'b' => Players::Black,
-                _ => return Err("Invalid FEN")
+                _ => return Err("Invalid FEN"),
             }
         } else {
             return Err("Invalid FEN");
@@ -191,7 +191,7 @@ impl ChessGame {
             white_queen_castling: false,
             black_king_castling: false,
             black_queen_castling: false,
-            last_position: None
+            last_position: None,
         };
 
         if let Some(castling_rights) = terms.next() {
@@ -202,7 +202,7 @@ impl ChessGame {
                     'Q' => state.white_queen_castling = true,
                     'k' => state.black_king_castling = true,
                     'q' => state.black_queen_castling = true,
-                    _ => continue
+                    _ => continue,
                 }
             }
         } else {
@@ -224,7 +224,6 @@ impl ChessGame {
         } else {
             return Err("Invalid FEN");
         }
-
 
         let mut game = ChessGame {
             board,
@@ -339,18 +338,39 @@ impl ChessGame {
                     }
                 }
 
+                if captured_piece.is_some_and(|piece| piece.piece_type == PieceTypes::Rook) {
+                    let (pos1, pos2, pos3, pos4) = unsafe {
+                        (
+                        Position::new_unsafe(0, 0),
+                        Position::new_unsafe(0, 7),
+                        Position::new_unsafe(7, 0),
+                        Position::new_unsafe(7, 7),
+                    )
+                    };
+
+                    if end == pos1 {
+                        state.white_queen_castling = false;
+                    } else if end == pos2 {
+                        state.white_king_castling = false;
+                    } else if end == pos3 {
+                        state.black_queen_castling = false;
+                    } else if end == pos4 {
+                        state.black_king_castling = false;
+                    }
+                }
+
                 state.en_passant = 
                     if piece.piece_type == PieceTypes::Pawn && i8::abs(end.row() - start.row()) == 2 
                         { start.col() } else { -1 }
             }
             #[rustfmt::skip]
-            Move::Promovation { owner, start, end, captured_piece } => {
+            Move::Promotion { owner, start, end, captured_piece, new_piece } => {
                 self.set_position(start, None);
                 self.set_position(
                     end,
                     Some(Piece {
                         owner,
-                        piece_type: PieceTypes::Queen,
+                        piece_type: new_piece,
                     }),
                 );
                 
@@ -509,7 +529,7 @@ impl ChessGame {
                 }
             }
             #[rustfmt::skip]
-            Move::Promovation { owner, start, end, captured_piece } => {
+            Move::Promotion { owner, start, end, captured_piece, .. } => {
                 self.set_position(
                     start,
                     Some(Piece {
@@ -845,12 +865,23 @@ impl Move {
                 s.push((end.col() as u8 + b'a') as char);
                 s.push((end.row() as u8 + b'1') as char);
             }
-            Move::Promovation { start, end, .. } => {
+            Move::Promotion {
+                start,
+                end,
+                new_piece,
+                ..
+            } => {
                 s.push((start.col() as u8 + b'a') as char);
                 s.push((start.row() as u8 + b'1') as char);
                 s.push((end.col() as u8 + b'a') as char);
                 s.push((end.row() as u8 + b'1') as char);
-                s.push('q');
+                s.push(match new_piece {
+                    PieceTypes::Queen => 'q',
+                    PieceTypes::Rook => 'r',
+                    PieceTypes::Bishop => 'k',
+                    PieceTypes::Knight => 'b',
+                    _ => unreachable!(),
+                });
             }
             Move::CastlingShort { owner } => {
                 let row = match owner {
@@ -925,9 +956,10 @@ impl Move {
                 };
                 s
             }
-            Move::Promovation {
+            Move::Promotion {
                 end,
                 captured_piece,
+                new_piece,
                 ..
             } => {
                 let mut s = String::new();
@@ -937,7 +969,13 @@ impl Move {
                 s.push(((end.col()) as u8 + b'a') as char);
                 s.push_str((end.row() + 1).to_string().as_str());
                 s.push('=');
-                s.push('Q');
+                s.push(match new_piece {
+                    PieceTypes::Queen => 'Q',
+                    PieceTypes::Rook => 'R',
+                    PieceTypes::Bishop => 'K',
+                    PieceTypes::Knight => 'B',
+                    _ => unreachable!(),
+                });
                 s
             }
         }
@@ -946,8 +984,6 @@ impl Move {
     pub fn from_uci_notation(s: &str, game: &ChessGame) -> Result<Self, &'static str> {
         if s.len() != 4 && s.len() != 5 {
             return Err("Invalid move length");
-        } else if s.chars().nth(4).is_some_and(|c| c != 'q') {
-            return Err("Only promovations to queen are allowed for now");
         } else if s == "e1g1" {
             return Ok(Move::CastlingShort {
                 owner: Players::White,
@@ -982,10 +1018,19 @@ impl Move {
             let end = end.unwrap();
 
             if s.len() == 5 {
-                return Ok(Move::Promovation {
+                let new_piece = match s.chars().nth(4).unwrap() {
+                    'q' => PieceTypes::Queen,
+                    'r' => PieceTypes::Rook,
+                    'k' => PieceTypes::Bishop,
+                    'b' => PieceTypes::Knight,
+                    _ => return Err("Invalid piece"),
+                };
+
+                return Ok(Move::Promotion {
                     owner: game.current_player,
                     start,
                     end,
+                    new_piece,
                     captured_piece: *game.get_position(end),
                 });
             }

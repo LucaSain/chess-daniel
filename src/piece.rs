@@ -135,22 +135,33 @@ impl Piece {
 
                 if let Some(new_pos) = pos.add(normal_delta) {
                     if game.get_position(new_pos).is_none() {
-                        let _move = if last_row == new_pos.row() {
-                            Move::Promovation {
-                                owner: game.current_player,
-                                start: pos,
-                                end: new_pos,
-                                captured_piece: None,
+                        if last_row == new_pos.row() {
+                            for new_piece in [
+                                PieceTypes::Queen,
+                                PieceTypes::Rook,
+                                PieceTypes::Bishop,
+                                PieceTypes::Knight,
+                            ]
+                            .into_iter()
+                            {
+                                let _move = Move::Promotion {
+                                    owner: game.current_player,
+                                    start: pos,
+                                    end: new_pos,
+                                    captured_piece: None,
+                                    new_piece,
+                                };
+                                push!(moves, _move);
                             }
                         } else {
-                            Move::Normal {
+                            let _move = Move::Normal {
                                 piece: *self,
                                 start: pos,
                                 end: new_pos,
                                 captured_piece: None,
-                            }
+                            };
+                            push!(moves, _move);
                         };
-                        push!(moves, _move);
                     }
                 }
 
@@ -158,22 +169,33 @@ impl Piece {
                     if let Some(new_pos) = pos.add(delta) {
                         let place = game.get_position(new_pos);
                         if place.is_some_and(|piece| piece.owner != self.owner) {
-                            let _move = if last_row == new_pos.row() {
-                                Move::Promovation {
-                                    owner: game.current_player,
-                                    start: pos,
-                                    end: new_pos,
-                                    captured_piece: *place,
+                            if last_row == new_pos.row() {
+                                for new_piece in [
+                                    PieceTypes::Queen,
+                                    PieceTypes::Rook,
+                                    PieceTypes::Bishop,
+                                    PieceTypes::Knight,
+                                ]
+                                .into_iter()
+                                {
+                                    let _move = Move::Promotion {
+                                        owner: game.current_player,
+                                        start: pos,
+                                        end: new_pos,
+                                        captured_piece: *place,
+                                        new_piece,
+                                    };
+                                    push!(moves, _move);
                                 }
                             } else {
-                                Move::Normal {
+                                let _move = Move::Normal {
                                     piece: *self,
                                     start: pos,
                                     end: new_pos,
                                     captured_piece: *place,
-                                }
+                                };
+                                push!(moves, _move);
                             };
-                            push!(moves, _move);
                         }
                     }
                 }
