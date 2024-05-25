@@ -7,7 +7,11 @@ use arrayvec::ArrayVec;
 use chess_game::*;
 use move_struct::*;
 
-use std::{cmp::Ordering, io::stdin};
+use std::{
+    cmp::Ordering,
+    io::stdin,
+    time::{Duration, Instant},
+};
 
 fn get_best_move_score(game: &mut ChessGame, depth: u8, mut alpha: i32, beta: i32) -> i32 {
     if depth == 0 {
@@ -23,7 +27,7 @@ fn get_best_move_score(game: &mut ChessGame, depth: u8, mut alpha: i32, beta: i3
             return 0;
         } else {
             // The earlier the mate the worse the score for the losing player
-            return i32::MIN + game.len() as i32;
+            return i32::MIN + 100 + game.len() as i32;
         }
     } else if moves.len() == 1 {
         // If there is only one move available push it and don't decrease depth
@@ -84,7 +88,7 @@ fn get_best_move_score(game: &mut ChessGame, depth: u8, mut alpha: i32, beta: i3
         })
     }
 
-    let mut best_score = -1000000000;
+    let mut best_score = i32::MIN + 10;
     for _move in moves.iter() {
         let _move = *_move;
         game.push(_move);
@@ -123,6 +127,22 @@ fn get_best_move(game: &mut ChessGame, depth: u8) -> (Option<Move>, i32) {
     }
 
     (best_move, best_score)
+}
+
+fn get_best_move_in_time(game: &mut ChessGame, duration: Duration) -> Option<Move> {
+    let now = Instant::now();
+    let mut best_move;
+    for depth in 3.. {
+        best_move = get_best_move(game, depth).0;
+
+        let elapsed_time = now.elapsed();
+        if elapsed_time > duration {
+            dbg!(depth);
+            return best_move;
+        }
+    }
+
+    unreachable!()
 }
 
 fn uci_talk() {
@@ -175,19 +195,19 @@ fn main() {
     }
 
     let arg = next_arg.unwrap();
-    let depth = args.next().unwrap().parse().unwrap();
 
     if arg == "test" {
+        let depth = args.next().unwrap().parse().unwrap();
         let _move = get_best_move(&mut game, depth);
     } else if arg == "auto" {
+        let time = args.next().unwrap().parse().unwrap();
         loop {
             let mut moves = ArrayVec::new();
             game.get_moves(&mut moves, true);
             println!("{}", game.get_pgn());
             dbg!(game.clone());
-            let _move = get_best_move(&mut game, depth);
-            dbg!(_move.1);
-            let next_move = _move.0.unwrap();
+            let _move = get_best_move_in_time(&mut game, Duration::from_millis(time));
+            let next_move = _move.unwrap();
             game.push_history(next_move);
         }
     }
