@@ -620,7 +620,7 @@ impl ChessGame {
     }
 
     /// `moves` will be cleared by this function to be sure it has room for all moves
-    pub fn get_moves(&mut self, moves: &mut ArrayVec<Move, 128>, verify_king: bool) {
+    pub fn get_moves(&mut self, moves: &mut ArrayVec<Move, 256>, verify_king: bool) {
         moves.clear();
 
         let king_place = self.get_position(self.get_king_position(self.current_player));

@@ -1,3 +1,5 @@
+use std::cell::OnceCell;
+
 use arrayvec::ArrayVec;
 
 use crate::chess_game::*;
@@ -88,7 +90,7 @@ impl Piece {
     /// The `moves` buffer must be able to hold all available moves
     pub unsafe fn get_moves(
         &self,
-        moves: &mut ArrayVec<Move, 128>,
+        moves: &mut ArrayVec<Move, 256>,
         game: &ChessGame,
         pos: Position,
     ) {
@@ -266,49 +268,52 @@ impl Piece {
                     Players::White => 0,
                     Players::Black => 7,
                 };
+                // We may need this value 0, 1, or 2 times so we lazy-initialize it.
+                let is_king_targeted = OnceCell::new();
                 // SAFETY: Theses are hardcoded valid positions
                 let king = unsafe { Position::new_unsafe(row, 4) };
-                if !game.is_targeted(king, game.current_player) {
-                    // SAFETY: Theses are hardcoded valid positions
-                    if king_side_castling {
-                        let (pos1, pos2) =
-                            unsafe { (Position::new_unsafe(row, 5), Position::new_unsafe(row, 6)) };
-
-                        if game.get_position(pos1).is_none()
-                            && game.get_position(pos2).is_none()
-                            && !game.is_targeted(pos1, game.current_player)
-                            && !game.is_targeted(pos2, game.current_player)
-                        {
-                            push!(
-                                moves,
-                                Move::CastlingShort {
-                                    owner: game.current_player,
-                                }
-                            );
-                        }
+                // SAFETY: Theses are hardcoded valid positions
+                if king_side_castling {
+                    let (pos1, pos2) =
+                        unsafe { (Position::new_unsafe(row, 5), Position::new_unsafe(row, 6)) };
+                    if game.get_position(pos1).is_none()
+                        && game.get_position(pos2).is_none()
+                        && !*is_king_targeted
+                            .get_or_init(|| game.is_targeted(king, game.current_player))
+                        && !game.is_targeted(pos1, game.current_player)
+                        && !game.is_targeted(pos2, game.current_player)
+                    {
+                        push!(
+                            moves,
+                            Move::CastlingShort {
+                                owner: game.current_player,
+                            }
+                        );
                     }
-                    if queen_side_castling {
-                        // SAFETY: Theses are hardcoded valid positions
-                        let (pos1, pos2, pos3) = unsafe {
-                            (
-                                Position::new_unsafe(row, 1),
-                                Position::new_unsafe(row, 2),
-                                Position::new_unsafe(row, 3),
-                            )
-                        };
-                        if game.get_position(pos1).is_none()
-                            && game.get_position(pos2).is_none()
-                            && game.get_position(pos3).is_none()
-                            && !game.is_targeted(pos2, game.current_player)
-                            && !game.is_targeted(pos3, game.current_player)
-                        {
-                            push!(
-                                moves,
-                                Move::CastlingLong {
-                                    owner: game.current_player,
-                                }
-                            );
-                        }
+                }
+                if queen_side_castling {
+                    // SAFETY: Theses are hardcoded valid positions
+                    let (pos1, pos2, pos3) = unsafe {
+                        (
+                            Position::new_unsafe(row, 1),
+                            Position::new_unsafe(row, 2),
+                            Position::new_unsafe(row, 3),
+                        )
+                    };
+                    if game.get_position(pos1).is_none()
+                        && game.get_position(pos2).is_none()
+                        && game.get_position(pos3).is_none()
+                        && !*is_king_targeted
+                            .get_or_init(|| game.is_targeted(king, game.current_player))
+                        && !game.is_targeted(pos2, game.current_player)
+                        && !game.is_targeted(pos3, game.current_player)
+                    {
+                        push!(
+                            moves,
+                            Move::CastlingLong {
+                                owner: game.current_player,
+                            }
+                        );
                     }
                 }
             }
