@@ -146,41 +146,63 @@ fn get_best_move_in_time(game: &mut ChessGame, duration: Duration) -> Option<Mov
 }
 
 fn uci_talk() {
+    let mut game = ChessGame::default();
     // Source: https://gist.github.com/DOBRO/2592c6dad754ba67e6dcaec8c90165bf
-    let mut lines = stdin().lines();
-    // Read "uci"
-    lines.next().unwrap().unwrap();
-    println!("id name daniel_chess");
-    println!("id author Malanca Daniel");
-    println!("uciok");
-    lines.next().unwrap().unwrap();
-    println!("readyok");
-    lines.next().unwrap().unwrap();
-    lines.next().unwrap().unwrap();
-    println!("readyok");
-    loop {
-        let mut game = ChessGame::default();
-        let line = lines.next().unwrap().unwrap();
-        let mut words = line.split_whitespace();
-        words.next().unwrap();
-        words.next().unwrap();
-        if words.next().is_some() {
-            for move_str in words {
-                let _move = Move::from_uci_notation(move_str, &game).unwrap();
-                let mut moves = ArrayVec::new();
-                game.get_moves(&mut moves, true);
-                if moves.iter().any(|allowed_move| _move == *allowed_move) {
-                    game.push_history(_move);
-                } else {
-                    break;
+    'main_loop: for line in stdin().lines() {
+        let line = line.unwrap();
+        let mut terms = line.split_ascii_whitespace();
+        while let Some(term) = terms.next() {
+            match term {
+                "uci" => {
+                    println!("id name daniel_chess");
+                    println!("id author Malanca Daniel");
+                    println!("uciok");
+                    continue 'main_loop;
                 }
+                "isready" => {
+                    println!("readyok");
+                    continue 'main_loop;
+                }
+                "position" => {
+                    if let Some(term) = terms.next() {
+                        match term {
+                            "startpos" => {
+                                game = ChessGame::default();
+                                if let Some(term) = terms.next() {
+                                    if term == "moves" {
+                                        while let Some(move_str) = terms.next() {
+                                            dbg!(move_str);
+                                            let _move =
+                                                Move::from_uci_notation(move_str, &game).unwrap();
+                                            let mut moves = ArrayVec::new();
+                                            game.get_moves(&mut moves, true);
+                                            if moves
+                                                .iter()
+                                                .any(|allowed_move| _move == *allowed_move)
+                                            {
+                                                game.push_history(_move);
+                                            } else {
+                                                continue 'main_loop;
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                            _ => continue 'main_loop,
+                        }
+                    } else {
+                        continue 'main_loop;
+                    }
+                }
+                "go" => {
+                    let best_move =
+                        get_best_move_in_time(&mut game, Duration::from_secs(1)).unwrap();
+                    println!("bestmove {}", best_move.uci_notation());
+                    game.push_history(best_move);
+                }
+                _ => continue,
             }
         }
-        lines.next().unwrap().unwrap();
-        let best_move = get_best_move(&mut game, 9).0.unwrap();
-        dbg!(game.clone());
-        println!("bestmove {}", best_move.uci_notation());
-        game.push_history(best_move);
     }
 }
 
