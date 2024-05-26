@@ -1,4 +1,3 @@
-cargo-features = ["profile-rustflags"]
 
 [package]
 name = "chess"
@@ -9,11 +8,9 @@ edition = "2021"
 
 [dependencies]
 arrayvec = "0.7.4"
-# rayon = "1.10.0"
 
 [profile.release]
+# We want our engine to be as fast as possible
 lto = true
 codegen-units = 1
 panic = "abort"
-debug = true
-rustflags = ["-C", "target-cpu=native", "-C", "target-feature=-avx"]
