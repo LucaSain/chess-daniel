@@ -133,13 +133,13 @@ fn get_best_move_in_time(game: &mut ChessGame, duration: Duration) -> Option<Mov
     let now = Instant::now();
     let mut best_move;
     let mut best_score;
-    for depth in 7.. {
+    for depth in 5.. {
         (best_move, best_score) = get_best_move(game, depth);
         println!("info depth {}", depth);
         println!("info score cp {}", best_score / 100);
-
+        // If mate can be forced, stop searching
         let elapsed_time = now.elapsed();
-        if elapsed_time > duration {
+        if elapsed_time > duration || best_score > i32::MAX - 1000 {
             return best_move;
         }
     }
@@ -201,7 +201,7 @@ fn uci_talk() {
                 }
                 "go" => {
                     if let Some(best_move) =
-                        get_best_move_in_time(&mut game, Duration::from_millis(2500))
+                        get_best_move_in_time(&mut game, Duration::from_millis(1500))
                     {
                         println!("bestmove {}", best_move.uci_notation());
                         game.push_history(best_move);
