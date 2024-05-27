@@ -209,30 +209,70 @@ fn uci_talk() {
 fn main() {
     let mut args = std::env::args();
     args.next();
-    let mut game = ChessGame::default();
-    let next_arg = args.next();
-    if next_arg.is_none() {
-        uci_talk();
-        return;
-    }
+    if let Some(arg) = args.next() {
+        if arg == "test" {
+            // Generate best moves for a couple different positions
+            // This is used for benchmarking and PGO optimization
+            let depth = match args.next() {
+                Some(num_str) => match num_str.parse() {
+                    Ok(num) => num,
+                    Err(_) => 7,
+                },
+                None => 7,
+            };
+            let mut game = ChessGame::default();
+            for i in 3..=depth {
+                get_best_move(&mut game, i);
+            }
 
-    let arg = next_arg.unwrap();
-
-    if arg == "test" {
-        let depth = args.next().unwrap().parse().unwrap();
-        let _move = get_best_move(&mut game, depth);
-    } else if arg == "auto" {
-        let time = args.next().unwrap().parse().unwrap();
-        loop {
-            let mut moves = ArrayVec::new();
-            game.get_moves(&mut moves, true);
-            println!("{}", game.get_pgn());
-            dbg!(game.clone());
-            let _move = get_best_move_in_time(&mut game, Duration::from_millis(time));
-            let next_move = _move.unwrap();
-            game.push_history(next_move);
+            game =
+                ChessGame::new("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq -")
+                    .unwrap();
+            for i in 3..=depth {
+                get_best_move(&mut game, i);
+            }
+            game = ChessGame::new("8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - ").unwrap();
+            for i in 3..=depth {
+                get_best_move(&mut game, i);
+            }
+            game = ChessGame::new("r3k2r/Pppp1ppp/1b3nbN/nP6/BBP1P3/q4N2/Pp1P2PP/R2Q1RK1 w kq - 0")
+                .unwrap();
+            for i in 3..=depth {
+                get_best_move(&mut game, i);
+            }
+            game = ChessGame::new("rnbq1k1r/pp1Pbppp/2p5/8/2B5/8/PPP1NnPP/RNBQK2R w KQ - 1 8")
+                .unwrap();
+            for i in 3..=depth {
+                get_best_move(&mut game, i);
+            }
+            game = ChessGame::new(
+                "r4rk1/1pp1qppp/p1np1n2/2b1p1B1/2B1P1b1/P1NP1N2/1PP1QPPP/R4RK1 w - - 0 10",
+            )
+            .unwrap();
+            for i in 3..=depth {
+                get_best_move(&mut game, i);
+            }
+            return;
+        } else if arg == "auto" {
+            let mut game = ChessGame::default();
+            let time = args.next().unwrap().parse().unwrap();
+            loop {
+                let mut moves = ArrayVec::new();
+                game.get_moves(&mut moves, true);
+                println!("{}", game.get_pgn());
+                dbg!(game.clone());
+                let next_move = match get_best_move_in_time(&mut game, Duration::from_millis(time))
+                {
+                    Some(_move) => _move,
+                    None => break,
+                };
+                game.push_history(next_move);
+            }
+            return;
         }
     }
+    // Enter UCI mode
+    uci_talk();
 }
 
 #[cfg(test)]
