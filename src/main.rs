@@ -132,7 +132,7 @@ fn get_best_move(game: &mut ChessGame, depth: u8) -> (Option<Move>, i32) {
 fn get_best_move_in_time(game: &mut ChessGame, duration: Duration) -> Option<Move> {
     let now = Instant::now();
     let mut best_move;
-    for depth in 3.. {
+    for depth in 7.. {
         best_move = get_best_move(game, depth).0;
 
         let elapsed_time = now.elapsed();
