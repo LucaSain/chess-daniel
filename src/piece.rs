@@ -33,35 +33,6 @@ macro_rules! push {
     };
 }
 
-macro_rules! find_moves_loops {
-    ( $moves:ident, $pos:ident, $game:ident, $piece_type:ident, $( $x:expr ),* ) => {
-        $(
-        for delta in $x {
-            if let Some(new_pos) = $pos.add(delta) {
-                let place = $game.get_position(new_pos);
-                let _move = Move::Normal {
-                    piece: *$piece_type,
-                    start: $pos,
-                    end: new_pos,
-                    captured_piece: *place,
-                };
-
-                if let Some(piece) = place  {
-                    if piece.owner != $game.current_player {
-                        push!($moves, _move);
-                    }
-                    break;
-                }
-
-                push!($moves, _move);
-            } else {
-                break;
-            }
-        }
-        )*
-    };
-}
-
 impl Piece {
     pub fn score(&self, pos: Position) -> i32 {
         // SAFETY: Position is always valid
@@ -94,6 +65,32 @@ impl Piece {
         game: &ChessGame,
         pos: Position,
     ) {
+        macro_rules! find_moves_loops {
+            ( $( $deltas:expr ),* ) => { $ (
+                for delta in $deltas {
+                    if let Some(new_pos) = pos.add(delta) {
+                        let place = game.get_position(new_pos);
+                        let _move = Move::Normal {
+                            piece: *self,
+                            start: pos,
+                            end: new_pos,
+                            captured_piece: *place,
+                        };
+
+                        if let Some(piece) = place  {
+                            if piece.owner != game.current_player {
+                                push!(moves, _move);
+                            }
+                            break;
+                        }
+
+                        push!(moves, _move);
+                    } else {
+                        break;
+                    }
+                }
+            )* };
+        }
         match self.piece_type {
             PieceTypes::Pawn => {
                 let first_row = match self.owner {
@@ -348,10 +345,6 @@ impl Piece {
             }
             PieceTypes::Rook => {
                 find_moves_loops![
-                    moves,
-                    pos,
-                    game,
-                    self,
                     (1..).map(|x| (0, x)),
                     (1..).map(|x| (0, -x)),
                     (1..).map(|x| (x, 0)),
@@ -360,10 +353,6 @@ impl Piece {
             }
             PieceTypes::Bishop => {
                 find_moves_loops![
-                    moves,
-                    pos,
-                    game,
-                    self,
                     (1..).map(|x| (x, x)),
                     (1..).map(|x| (-x, -x)),
                     (1..).map(|x| (x, -x)),
@@ -373,10 +362,6 @@ impl Piece {
 
             PieceTypes::Queen => {
                 find_moves_loops![
-                    moves,
-                    pos,
-                    game,
-                    self,
                     (1..).map(|x| (0, x)),
                     (1..).map(|x| (0, -x)),
                     (1..).map(|x| (x, 0)),
