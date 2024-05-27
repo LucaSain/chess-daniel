@@ -200,6 +200,9 @@ fn uci_talk() {
                     println!("bestmove {}", best_move.uci_notation());
                     game.push_history(best_move);
                 }
+                "quit" => {
+                    return;
+                }
                 _ => continue,
             }
         }
