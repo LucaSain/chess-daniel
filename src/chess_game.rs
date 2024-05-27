@@ -477,15 +477,6 @@ impl ChessGame {
         }
     }
 
-    pub fn pop_history(&mut self) -> Option<Move> {
-        let _move = self.move_stack.pop();
-        _move.inspect(|_move| {
-            self.pop(*_move);
-        });
-
-        _move
-    }
-
     pub fn pop(&mut self, _move: Move) {
         self.state.pop();
         self.current_player = self.current_player.the_other();
@@ -811,23 +802,6 @@ impl ChessGame {
                 s.push('.');
                 s.push(' ');
             }
-            s.push_str(_move.as_str());
-            s.push(' ');
-        }
-
-        s
-    }
-
-    pub fn get_uci(&self) -> String {
-        let moves: Vec<_> = self
-            .move_stack
-            .iter()
-            .map(|_move| _move.uci_notation())
-            .collect();
-
-        let mut s = String::new();
-
-        for _move in moves {
             s.push_str(_move.as_str());
             s.push(' ');
         }

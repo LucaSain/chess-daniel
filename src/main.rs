@@ -183,7 +183,7 @@ fn uci_talk() {
                                                 .iter()
                                                 .any(|allowed_move| _move == *allowed_move)
                                             {
-                                                game.push_history(_move);
+                                                game.push(_move);
                                             } else {
                                                 continue 'main_loop;
                                             }
@@ -202,7 +202,7 @@ fn uci_talk() {
                         get_best_move_in_time(&mut game, Duration::from_millis(2500))
                     {
                         println!("bestmove {}", best_move.uci_notation());
-                        game.push_history(best_move);
+                        game.push(best_move);
                     }
                 }
                 "quit" => {
