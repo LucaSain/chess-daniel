@@ -635,7 +635,7 @@ impl ChessGame {
                 // SAFETY: Theses are hardcoded valid positions,
                 // and moves is empty at the beginning
                 unsafe {
-                    if let Some(piece) = self
+                    if let Some(piece) = *self
                             .board
                             .get_unchecked(row as usize)
                             .get_unchecked(col as usize)

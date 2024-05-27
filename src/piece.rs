@@ -172,7 +172,7 @@ impl Piece {
 
                 for delta in side_deltas {
                     if let Some(new_pos) = pos.add(delta) {
-                        let place = game.get_position(new_pos);
+                        let place = *game.get_position(new_pos);
                         if place.is_some_and(|piece| piece.owner != self.owner) {
                             if last_row == new_pos.row() {
                                 for new_piece in [
@@ -187,7 +187,7 @@ impl Piece {
                                         owner: game.current_player,
                                         start: pos,
                                         end: new_pos,
-                                        captured_piece: *place,
+                                        captured_piece: place,
                                         new_piece,
                                     };
                                     push!(_move);
@@ -197,7 +197,7 @@ impl Piece {
                                     piece: *self,
                                     start: pos,
                                     end: new_pos,
-                                    captured_piece: *place,
+                                    captured_piece: place,
                                 };
                                 push!(_move);
                             };
@@ -233,7 +233,7 @@ impl Piece {
                 .into_iter()
                 {
                     if let Some(new_pos) = pos.add(delta) {
-                        let place = game.get_position(new_pos);
+                        let place = *game.get_position(new_pos);
                         if !place.is_some_and(|piece| piece.owner == game.current_player) {
                             // Kings can't move into each other
                             if i8::abs(new_pos.row() - other_king_pos.row()) <= 1
@@ -245,7 +245,7 @@ impl Piece {
                                 piece: *self,
                                 start: pos,
                                 end: new_pos,
-                                captured_piece: *place,
+                                captured_piece: place,
                             });
                         }
                     }
@@ -316,13 +316,13 @@ impl Piece {
                 .into_iter()
                 {
                     if let Some(new_pos) = pos.add(delta) {
-                        let place = game.get_position(new_pos);
+                        let place = *game.get_position(new_pos);
                         if !place.is_some_and(|piece| piece.owner == game.current_player) {
                             push!(Move::Normal {
                                 piece: *self,
                                 start: pos,
                                 end: new_pos,
-                                captured_piece: *place,
+                                captured_piece: place,
                             });
                         }
                     }
