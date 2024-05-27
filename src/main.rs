@@ -200,10 +200,12 @@ fn uci_talk() {
                     }
                 }
                 "go" => {
-                    let best_move =
-                        get_best_move_in_time(&mut game, Duration::from_secs(1)).unwrap();
-                    println!("bestmove {}", best_move.uci_notation());
-                    game.push_history(best_move);
+                    if let Some(best_move) =
+                        get_best_move_in_time(&mut game, Duration::from_millis(2500))
+                    {
+                        println!("bestmove {}", best_move.uci_notation());
+                        game.push_history(best_move);
+                    }
                 }
                 "quit" => {
                     return;
