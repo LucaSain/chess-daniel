@@ -103,13 +103,13 @@ fn get_best_move_score(game: &mut ChessGame, depth: u8, mut alpha: i32, beta: i3
     best_score
 }
 
-fn get_best_move(game: &mut ChessGame, depth: u8) -> (Option<Move>, i32) {
+fn get_best_move(game: &mut ChessGame, depth: u8) -> (Option<Move>, i32, bool) {
     let mut moves = ArrayVec::new();
     game.get_moves(&mut moves, true);
 
     // If there is only one move available don't bother searching
     if moves.len() == 1 {
-        return (Some(moves[0]), 0);
+        return (moves.first().copied(), 0, true);
     }
 
     let mut best_move = None;
@@ -126,20 +126,18 @@ fn get_best_move(game: &mut ChessGame, depth: u8) -> (Option<Move>, i32) {
         }
     }
 
-    (best_move, best_score)
+    (best_move, best_score, false)
 }
 
 fn get_best_move_in_time(game: &mut ChessGame, duration: Duration) -> Option<Move> {
     let now = Instant::now();
-    let mut best_move;
-    let mut best_score;
-    for depth in 5.. {
-        (best_move, best_score) = get_best_move(game, depth);
+    for depth in 5..20 {
+        let (best_move, best_score, is_only_move) = get_best_move(game, depth);
         println!("info depth {}", depth);
         println!("info score cp {}", best_score / 100);
-        // If mate can be forced, stop searching
+        // If mate can be forced, or there is only a single move available, stop searching
         let elapsed_time = now.elapsed();
-        if elapsed_time > duration || best_score > i32::MAX - 1000 {
+        if elapsed_time > duration || is_only_move || best_score > i32::MAX - 1000 {
             return best_move;
         }
     }
@@ -201,7 +199,7 @@ fn uci_talk() {
                 }
                 "go" => {
                     if let Some(best_move) =
-                        get_best_move_in_time(&mut game, Duration::from_millis(1500))
+                        get_best_move_in_time(&mut game, Duration::from_millis(2500))
                     {
                         println!("bestmove {}", best_move.uci_notation());
                         game.push_history(best_move);
