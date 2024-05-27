@@ -184,6 +184,11 @@ fn uci_talk() {
                                                 .any(|allowed_move| _move == *allowed_move)
                                             {
                                                 game.push(_move);
+                                                // Hard limit onto the number
+                                                // of possible moves in a game;
+                                                if game.len() >= 400 {
+                                                    continue 'main_loop;
+                                                }
                                             } else {
                                                 continue 'main_loop;
                                             }

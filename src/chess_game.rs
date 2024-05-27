@@ -42,7 +42,7 @@ pub struct ChessGame {
     pub move_stack: Vec<Move>,
     board: [[Option<Piece>; 8]; 8],
     king_positions: [Position; 2],
-    state: ArrayVec<GameState, 256>,
+    state: ArrayVec<GameState, 512>,
 }
 
 impl Players {
@@ -471,7 +471,7 @@ impl ChessGame {
             }
         };
         self.current_player = self.current_player.the_other();
-        // SAFETY: The game should not be longer than 256 moves
+        // SAFETY: The game will not be longer than 512 moves
         unsafe {
             self.state.push_unchecked(state);
         }
