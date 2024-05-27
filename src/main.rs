@@ -131,10 +131,17 @@ fn get_best_move(game: &mut ChessGame, depth: u8) -> (Option<Move>, i32, bool) {
 
 fn get_best_move_in_time(game: &mut ChessGame, duration: Duration) -> Option<Move> {
     let now = Instant::now();
+    let mut last_score: Option<i32> = None;
     for depth in 5..20 {
         let (best_move, best_score, is_only_move) = get_best_move(game, depth);
+        let average_score = match last_score {
+            Some(score) => (score + best_score) / 2,
+            None => best_score,
+        };
+        last_score = Some(best_score);
+
         println!("info depth {}", depth);
-        println!("info score cp {}", best_score / 100);
+        println!("info score cp {}", average_score / 100);
         // If mate can be forced, or there is only a single move available, stop searching
         let elapsed_time = now.elapsed();
         if elapsed_time > duration || is_only_move || best_score > i32::MAX - 1000 {
