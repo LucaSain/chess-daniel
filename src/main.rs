@@ -170,7 +170,7 @@ fn uci_talk() {
                                 game = ChessGame::default();
                                 if let Some(term) = terms.next() {
                                     if term == "moves" {
-                                        while let Some(move_str) = terms.next() {
+                                        for move_str in terms.by_ref() {
                                             dbg!(move_str);
                                             let _move =
                                                 Move::from_uci_notation(move_str, &game).unwrap();
@@ -213,13 +213,11 @@ fn main() {
         if arg == "test" {
             // Generate best moves for a couple different positions
             // This is used for benchmarking and PGO optimization
-            let depth = match args.next() {
-                Some(num_str) => match num_str.parse() {
-                    Ok(num) => num,
-                    Err(_) => 7,
-                },
-                None => 7,
-            };
+            let depth = args
+                .next()
+                .unwrap_or(String::from("7"))
+                .parse()
+                .unwrap_or(7);
             let mut game = ChessGame::default();
             for i in 3..=depth {
                 get_best_move(&mut game, i);

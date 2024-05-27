@@ -637,8 +637,8 @@ impl ChessGame {
                 unsafe {
                     if let Some(piece) = *self
                             .board
-                            .get_unchecked(row as usize)
-                            .get_unchecked(col as usize)
+                            .get_unchecked(row)
+                            .get_unchecked(col)
                         {
                             if piece.owner == self.current_player {
                                 let pos = Position::new_unsafe(row, col);
