@@ -22,17 +22,6 @@ pub struct Piece {
     pub owner: Players,
 }
 
-macro_rules! push {
-    ( $moves:ident, $move:expr ) => {
-        // SAFETY: The number of possible moves on the board at any given time
-        // should never exceed the arrays capacity (256)
-        #[allow(unused_unsafe)]
-        unsafe {
-            $moves.push_unchecked($move);
-        }
-    };
-}
-
 impl Piece {
     pub fn score(&self, pos: Position) -> i32 {
         // SAFETY: Position is always valid
@@ -65,7 +54,18 @@ impl Piece {
         game: &ChessGame,
         pos: Position,
     ) {
-        macro_rules! find_moves_loops {
+        macro_rules! push {
+            ( $_move:expr ) => {
+                // SAFETY: The number of possible moves on the board at any given time
+                // should never exceed the arrays capacity (256)
+                #[allow(unused_unsafe)]
+                unsafe {
+                    moves.push_unchecked($_move);
+                }
+            };
+        }
+
+        macro_rules! search_deltas {
             ( $( $deltas:expr ),* ) => { $ (
                 for delta in $deltas {
                     if let Some(new_pos) = pos.add(delta) {
@@ -79,12 +79,12 @@ impl Piece {
 
                         if let Some(piece) = place  {
                             if piece.owner != game.current_player {
-                                push!(moves, _move);
+                                push!(_move);
                             }
                             break;
                         }
 
-                        push!(moves, _move);
+                        push!(_move);
                     } else {
                         break;
                     }
@@ -124,15 +124,12 @@ impl Piece {
                         && game.get_position(pos.add_unsafe(normal_delta)).is_none()
                         && game.get_position(pos.add_unsafe(first_row_delta)).is_none()
                     {
-                        push!(
-                            moves,
-                            Move::Normal {
-                                piece: *self,
-                                start: pos,
-                                end: pos.add_unsafe(first_row_delta),
-                                captured_piece: None,
-                            }
-                        );
+                        push!(Move::Normal {
+                            piece: *self,
+                            start: pos,
+                            end: pos.add_unsafe(first_row_delta),
+                            captured_piece: None,
+                        });
                     }
                 }
 
@@ -159,7 +156,7 @@ impl Piece {
                                     captured_piece: None,
                                     new_piece,
                                 };
-                                push!(moves, _move);
+                                push!(_move);
                             }
                         } else {
                             let _move = Move::Normal {
@@ -168,7 +165,7 @@ impl Piece {
                                 end: new_pos,
                                 captured_piece: None,
                             };
-                            push!(moves, _move);
+                            push!(_move);
                         };
                     }
                 }
@@ -193,7 +190,7 @@ impl Piece {
                                         captured_piece: *place,
                                         new_piece,
                                     };
-                                    push!(moves, _move);
+                                    push!(_move);
                                 }
                             } else {
                                 let _move = Move::Normal {
@@ -202,7 +199,7 @@ impl Piece {
                                     end: new_pos,
                                     captured_piece: *place,
                                 };
-                                push!(moves, _move);
+                                push!(_move);
                             };
                         }
                     }
@@ -218,7 +215,7 @@ impl Piece {
                         start_col: pos.col(),
                         end_col: valid_en_passant,
                     };
-                    push!(moves, _move);
+                    push!(_move);
                 }
             }
             PieceTypes::King => {
@@ -244,15 +241,12 @@ impl Piece {
                             {
                                 continue;
                             }
-                            push!(
-                                moves,
-                                Move::Normal {
-                                    piece: *self,
-                                    start: pos,
-                                    end: new_pos,
-                                    captured_piece: *place,
-                                }
-                            );
+                            push!(Move::Normal {
+                                piece: *self,
+                                start: pos,
+                                end: new_pos,
+                                captured_piece: *place,
+                            });
                         }
                     }
                 }
@@ -280,12 +274,9 @@ impl Piece {
                         && !game.is_targeted(pos1, game.current_player)
                         && !game.is_targeted(pos2, game.current_player)
                     {
-                        push!(
-                            moves,
-                            Move::CastlingShort {
-                                owner: game.current_player,
-                            }
-                        );
+                        push!(Move::CastlingShort {
+                            owner: game.current_player,
+                        });
                     }
                 }
                 if queen_side_castling {
@@ -305,12 +296,9 @@ impl Piece {
                         && !game.is_targeted(pos2, game.current_player)
                         && !game.is_targeted(pos3, game.current_player)
                     {
-                        push!(
-                            moves,
-                            Move::CastlingLong {
-                                owner: game.current_player,
-                            }
-                        );
+                        push!(Move::CastlingLong {
+                            owner: game.current_player,
+                        });
                     }
                 }
             }
@@ -330,21 +318,18 @@ impl Piece {
                     if let Some(new_pos) = pos.add(delta) {
                         let place = game.get_position(new_pos);
                         if !place.is_some_and(|piece| piece.owner == game.current_player) {
-                            push!(
-                                moves,
-                                Move::Normal {
-                                    piece: *self,
-                                    start: pos,
-                                    end: new_pos,
-                                    captured_piece: *place,
-                                }
-                            );
+                            push!(Move::Normal {
+                                piece: *self,
+                                start: pos,
+                                end: new_pos,
+                                captured_piece: *place,
+                            });
                         }
                     }
                 }
             }
             PieceTypes::Rook => {
-                find_moves_loops![
+                search_deltas![
                     (1..).map(|x| (0, x)),
                     (1..).map(|x| (0, -x)),
                     (1..).map(|x| (x, 0)),
@@ -352,7 +337,7 @@ impl Piece {
                 ];
             }
             PieceTypes::Bishop => {
-                find_moves_loops![
+                search_deltas![
                     (1..).map(|x| (x, x)),
                     (1..).map(|x| (-x, -x)),
                     (1..).map(|x| (x, -x)),
@@ -361,7 +346,7 @@ impl Piece {
             }
 
             PieceTypes::Queen => {
-                find_moves_loops![
+                search_deltas![
                     (1..).map(|x| (0, x)),
                     (1..).map(|x| (0, -x)),
                     (1..).map(|x| (x, 0)),
