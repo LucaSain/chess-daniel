@@ -132,12 +132,14 @@ fn get_best_move(game: &mut ChessGame, depth: u8) -> (Option<Move>, i32) {
 fn get_best_move_in_time(game: &mut ChessGame, duration: Duration) -> Option<Move> {
     let now = Instant::now();
     let mut best_move;
+    let mut best_score;
     for depth in 7.. {
-        best_move = get_best_move(game, depth).0;
+        (best_move, best_score) = get_best_move(game, depth);
+        println!("info depth {}", depth);
+        println!("info score cp {}", best_score / 100);
 
         let elapsed_time = now.elapsed();
         if elapsed_time > duration {
-            dbg!(depth);
             return best_move;
         }
     }
@@ -171,9 +173,12 @@ fn uci_talk() {
                                 if let Some(term) = terms.next() {
                                     if term == "moves" {
                                         for move_str in terms.by_ref() {
-                                            dbg!(move_str);
                                             let _move =
-                                                Move::from_uci_notation(move_str, &game).unwrap();
+                                                match Move::from_uci_notation(move_str, &game) {
+                                                    Ok(_move) => _move,
+                                                    Err(_) => continue 'main_loop,
+                                                };
+
                                             let mut moves = ArrayVec::new();
                                             game.get_moves(&mut moves, true);
                                             if moves

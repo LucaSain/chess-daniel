@@ -214,12 +214,24 @@ impl Move {
             }
 
             if let Some(piece) = *game.get_position(start) {
-                return Ok(Move::Normal {
-                    piece,
-                    start,
-                    end,
-                    captured_piece: *game.get_position(end),
-                });
+                // This move is either en passant or normal
+                return if piece.piece_type == PieceTypes::Pawn
+                    && game.get_position(end).is_none()
+                    && i8::abs(start.col() - end.col()) == 1
+                {
+                    Ok(Move::EnPassant {
+                        owner: game.current_player,
+                        start_col: start.col(),
+                        end_col: end.col(),
+                    })
+                } else {
+                    Ok(Move::Normal {
+                        piece,
+                        start,
+                        end,
+                        captured_piece: *game.get_position(end),
+                    })
+                };
             }
 
             Err("Start square is empty")
