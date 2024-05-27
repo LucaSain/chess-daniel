@@ -1,4 +1,5 @@
 use arrayvec::ArrayVec;
+use seq_macro::seq;
 
 use crate::move_struct::*;
 use crate::piece::*;
@@ -629,19 +630,25 @@ impl ChessGame {
             return;
         }
 
-        for r in 0..8 {
-            for c in 0..8 {
-                // SAFETY: Theses are hardcoded valid positions, and moves is empty at the beginning
+        seq!(row in 0..8 {
+            seq!(col in 0..8 {
+                // SAFETY: Theses are hardcoded valid positions,
+                // and moves is empty at the beginning
                 unsafe {
-                    if let Some(piece) = self.board.get_unchecked(r).get_unchecked(c) {
-                        if piece.owner == self.current_player {
-                            let pos = Position::new_unsafe(r as i8, c as i8);
-                            piece.get_moves(moves, self, pos);
+                    if let Some(piece) = self
+                            .board
+                            .get_unchecked(row as usize)
+                            .get_unchecked(col as usize)
+                        {
+                            if piece.owner == self.current_player {
+                                let pos = Position::new_unsafe(row, col);
+                                piece.get_moves(moves, self, pos);
+                            }
                         }
                     }
-                }
-            }
-        }
+            });
+        });
+
         // If verify_king then remove moves which put the king in check (invalid moves)
         // We remove invalid moves by overwriting them with the following valid moves
         if verify_king {
