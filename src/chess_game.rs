@@ -478,7 +478,11 @@ impl ChessGame {
     }
 
     pub fn pop(&mut self, _move: Move) {
-        self.state.pop();
+        // SAFETY: There is always a previous state
+        unsafe {
+            // self.state.pop() without verification for being empty
+            self.state.set_len(self.len() - 1);
+        }
         self.current_player = self.current_player.the_other();
 
         match _move {
