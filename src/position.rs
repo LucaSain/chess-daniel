@@ -21,15 +21,15 @@ impl Position {
         Self(row, col)
     }
 
-    pub fn row(&self) -> i8 {
+    pub fn row(self) -> i8 {
         self.0
     }
 
-    pub fn col(&self) -> i8 {
+    pub fn col(self) -> i8 {
         self.1
     }
 
-    pub fn add(&self, delta: (i8, i8)) -> Option<Self> {
+    pub fn add(self, delta: (i8, i8)) -> Option<Self> {
         let row = self.0 + delta.0;
         let col = self.1 + delta.1;
         if (0..8).contains(&row) && (0..8).contains(&col) {
@@ -43,7 +43,7 @@ impl Position {
     /// Same as self.add, but unchecked
     ///
     /// Caller must guarantee that return value is valid
-    pub unsafe fn add_unsafe(&self, delta: (i8, i8)) -> Self {
+    pub unsafe fn add_unsafe(self, delta: (i8, i8)) -> Self {
         let row = self.0 + delta.0;
         let col = self.1 + delta.1;
         debug_assert!((0..8).contains(&row) && (0..8).contains(&col));
