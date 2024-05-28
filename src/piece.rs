@@ -203,7 +203,7 @@ impl Piece {
 
                 let valid_en_passant = game.state().en_passant;
                 if pos.row() == en_passant_row
-                    && valid_en_passant >= 0
+                    && valid_en_passant < 8
                     && i8::abs(valid_en_passant - pos.col()) == 1
                 {
                     let _move = Move::EnPassant {
@@ -246,8 +246,8 @@ impl Piece {
                 }
                 let state = game.state();
                 let (king_side_castling, queen_side_castling) = match game.current_player {
-                    Players::White => (state.white_king_castling, state.white_queen_castling),
-                    Players::Black => (state.black_king_castling, state.black_queen_castling),
+                    Players::White => (state.white_king_castling(), state.white_queen_castling()),
+                    Players::Black => (state.black_king_castling(), state.black_queen_castling()),
                 };
                 let row = match game.current_player {
                     Players::White => 0,

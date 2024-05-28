@@ -11,25 +11,66 @@ pub enum Players {
     Black = -1,
 }
 
-/// Information about the state of the game at this moment
+/// Information about the state of the game at a moment in time that can't be derived easily
+/// Because of that, we hold it in a stack in the ChessGame struct
 #[derive(Clone, Copy, Debug)]
 pub struct GameState {
     pub en_passant: i8,
-    pub white_king_castling: bool,
-    pub white_queen_castling: bool,
-    pub black_king_castling: bool,
-    pub black_queen_castling: bool,
     pub last_position: Option<Position>,
+    /// The last 4 bits of castling_rights indicate castling rights
+    /// 32 bits for this value produce the best assembly
+    castling_rights: u32,
+}
+
+impl GameState {
+    pub fn white_king_castling(self) -> bool {
+        ((self.castling_rights >> 0) & 1) == 1
+    }
+    pub fn set_white_king_castling_false(&mut self) {
+        self.castling_rights &= !(1 << 0);
+    }
+    pub fn set_white_king_castling_true(&mut self) {
+        self.castling_rights |= 1 << 0;
+    }
+
+    pub fn white_queen_castling(self) -> bool {
+        ((self.castling_rights >> 1) & 1) == 1
+    }
+    pub fn set_white_queen_castling_false(&mut self) {
+        self.castling_rights &= !(1 << 1);
+    }
+    pub fn set_white_queen_castling_true(&mut self) {
+        self.castling_rights |= 1 << 1;
+    }
+
+    pub fn black_king_castling(self) -> bool {
+        ((self.castling_rights >> 2) & 1) == 1
+    }
+    pub fn set_black_king_castling_false(&mut self) {
+        self.castling_rights &= !(1 << 2);
+    }
+    pub fn set_black_king_castling_true(&mut self) {
+        self.castling_rights |= 1 << 2;
+    }
+
+    pub fn black_queen_castling(self) -> bool {
+        ((self.castling_rights >> 3) & 1) == 1
+    }
+    pub fn set_black_queen_castling_false(&mut self) {
+        self.castling_rights &= !(1 << 3);
+    }
+    pub fn set_black_queen_castling_true(&mut self) {
+        self.castling_rights |= 1 << 3;
+    }
 }
 
 impl Default for GameState {
+    /// Default state is no en passant square, and no castling rights
     fn default() -> Self {
         Self {
-            en_passant: -1,
-            white_king_castling: true,
-            white_queen_castling: true,
-            black_king_castling: true,
-            black_queen_castling: true,
+            // 8 Represents no en passant square
+            en_passant: 8,
+            castling_rights: 0,
             last_position: None,
         }
     }
@@ -95,7 +136,14 @@ impl Default for ChessGame {
             score: 0,
             state: ArrayVec::new(),
         };
-        game.state.push(GameState::default());
+
+        let mut state = GameState::default();
+        state.set_white_king_castling_true();
+        state.set_white_queen_castling_true();
+        state.set_black_king_castling_true();
+        state.set_black_queen_castling_true();
+
+        game.state.push(state);
         game
     }
 }
@@ -154,22 +202,14 @@ impl ChessGame {
             return Err("Invalid FEN");
         };
 
-        let mut state = GameState {
-            en_passant: -1,
-            white_king_castling: false,
-            white_queen_castling: false,
-            black_king_castling: false,
-            black_queen_castling: false,
-            last_position: None,
-        };
-
+        let mut state = GameState::default();
         if let Some(castling_rights) = terms.next() {
             for right in castling_rights.chars() {
                 match right {
-                    'K' => state.white_king_castling = true,
-                    'Q' => state.white_queen_castling = true,
-                    'k' => state.black_king_castling = true,
-                    'q' => state.black_queen_castling = true,
+                    'K' => state.set_white_king_castling_true(),
+                    'Q' => state.set_white_queen_castling_true(),
+                    'k' => state.set_black_king_castling_true(),
+                    'q' => state.set_black_queen_castling_true(),
                     _ => continue,
                 }
             }
@@ -272,7 +312,7 @@ impl ChessGame {
 
     pub fn push(&mut self, _move: Move) {
         let mut state = *self.state();
-        state.en_passant = -1;
+        state.en_passant = 8;
         match _move {
             #[rustfmt::skip]
             Move::Normal { piece, start, end, captured_piece } => {
@@ -287,24 +327,24 @@ impl ChessGame {
                     self.set_king_position(self.current_player, end);
                     match self.current_player {
                         Players::White => {
-                            state.white_king_castling = false;
-                            state.white_queen_castling = false;
+                            state.set_white_king_castling_false();
+                            state.set_white_queen_castling_false();
                         }
                         Players::Black =>  {
-                            state.black_king_castling = false;
-                            state.black_queen_castling = false;
+                            state.set_black_king_castling_false();
+                            state.set_black_queen_castling_false();
                         }
                     }
                 } else if piece.piece_type == PieceTypes::Rook {
                     if start.col() == 0 {
                         match self.current_player {
-                            Players::White => state.white_queen_castling = false,
-                            Players::Black => state.black_queen_castling = false,
+                            Players::White => state.set_white_queen_castling_false(),
+                            Players::Black => state.set_black_queen_castling_false(),
                         }
                     } else if start.col() == 7 {
                         match self.current_player {
-                            Players::White => state.white_king_castling = false,
-                            Players::Black => state.black_king_castling = false,
+                            Players::White => state.set_white_king_castling_false(),
+                            Players::Black => state.set_black_king_castling_false(),
                         }
                     }
                 }
@@ -321,19 +361,19 @@ impl ChessGame {
                     };
 
                     if end == pos1 {
-                        state.white_queen_castling = false;
+                        state.set_white_queen_castling_false();
                     } else if end == pos2 {
-                        state.white_king_castling = false;
+                        state.set_white_king_castling_false();
                     } else if end == pos3 {
-                        state.black_queen_castling = false;
+                        state.set_black_queen_castling_false();
                     } else if end == pos4 {
-                        state.black_king_castling = false;
+                        state.set_black_king_castling_false();
                     }
                 }
 
-                state.en_passant =
-                    if piece.piece_type == PieceTypes::Pawn && i8::abs(end.row() - start.row()) == 2
-                        { start.col() } else { -1 }
+                if piece.piece_type == PieceTypes::Pawn && i8::abs(end.row() - start.row()) == 2 {
+                    state.en_passant = start.col();
+                }
             }
             #[rustfmt::skip]
             Move::Promotion { owner, start, end, captured_piece, new_piece } => {
@@ -415,12 +455,12 @@ impl ChessGame {
                 self.set_king_position(self.current_player, new_king);
                 match self.current_player {
                     Players::White => {
-                        state.white_king_castling = false;
-                        state.white_queen_castling = false;
+                        state.set_white_king_castling_false();
+                        state.set_white_queen_castling_false();
                     }
                     Players::Black => {
-                        state.black_king_castling = false;
-                        state.black_queen_castling = false;
+                        state.set_black_king_castling_false();
+                        state.set_black_queen_castling_false();
                     }
                 }
             }
@@ -460,12 +500,12 @@ impl ChessGame {
                 self.set_king_position(self.current_player, new_king);
                 match self.current_player {
                     Players::White => {
-                        state.white_king_castling = false;
-                        state.white_queen_castling = false;
+                        state.set_white_king_castling_false();
+                        state.set_white_queen_castling_false();
                     }
                     Players::Black => {
-                        state.black_king_castling = false;
-                        state.black_queen_castling = false;
+                        state.set_black_king_castling_false();
+                        state.set_black_queen_castling_false();
                     }
                 }
             }
