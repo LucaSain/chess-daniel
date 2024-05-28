@@ -23,7 +23,7 @@ pub struct Piece {
 }
 
 impl Piece {
-    pub fn score(&self, pos: Position) -> i32 {
+    pub fn score(self, pos: Position) -> i32 {
         // SAFETY: Position is always valid
         unsafe {
             let piece_score = *match self.piece_type {
@@ -49,7 +49,7 @@ impl Piece {
     /// # Safety
     /// The `moves` buffer must be able to hold all available moves
     pub unsafe fn get_moves(
-        &self,
+        self,
         moves: &mut ArrayVec<Move, 256>,
         game: &ChessGame,
         pos: Position,
@@ -71,7 +71,7 @@ impl Piece {
                     if let Some(new_pos) = pos.add(delta) {
                         let place = game.get_position(new_pos);
                         let _move = Move::Normal {
-                            piece: *self,
+                            piece: self,
                             start: pos,
                             end: new_pos,
                             captured_piece: *place,
@@ -125,7 +125,7 @@ impl Piece {
                         && game.get_position(pos.add_unsafe(first_row_delta)).is_none()
                     {
                         push!(Move::Normal {
-                            piece: *self,
+                            piece: self,
                             start: pos,
                             end: pos.add_unsafe(first_row_delta),
                             captured_piece: None,
@@ -158,7 +158,7 @@ impl Piece {
                             }
                         } else {
                             let _move = Move::Normal {
-                                piece: *self,
+                                piece: self,
                                 start: pos,
                                 end: new_pos,
                                 captured_piece: None,
@@ -190,7 +190,7 @@ impl Piece {
                                 }
                             } else {
                                 let _move = Move::Normal {
-                                    piece: *self,
+                                    piece: self,
                                     start: pos,
                                     end: new_pos,
                                     captured_piece: place,
@@ -236,7 +236,7 @@ impl Piece {
                                 continue;
                             }
                             push!(Move::Normal {
-                                piece: *self,
+                                piece: self,
                                 start: pos,
                                 end: new_pos,
                                 captured_piece: place,
@@ -311,7 +311,7 @@ impl Piece {
                         let place = *game.get_position(new_pos);
                         if !place.is_some_and(|piece| piece.owner == game.current_player) {
                             push!(Move::Normal {
-                                piece: *self,
+                                piece: self,
                                 start: pos,
                                 end: new_pos,
                                 captured_piece: place,
@@ -352,7 +352,7 @@ impl Piece {
         }
     }
 
-    pub fn as_char(&self) -> char {
+    pub fn as_char(self) -> char {
         match self.owner {
             Players::White => match self.piece_type {
                 PieceTypes::King => '♔',
@@ -373,7 +373,7 @@ impl Piece {
         }
     }
 
-    pub fn as_char_ascii(&self) -> &str {
+    pub fn as_char_ascii(self) -> &'static str {
         match self.piece_type {
             PieceTypes::King => "K",
             PieceTypes::Queen => "Q",
