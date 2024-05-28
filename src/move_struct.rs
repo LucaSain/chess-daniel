@@ -1,8 +1,8 @@
 use std::str::FromStr;
 
-use crate::chess_game::*;
-use crate::piece::*;
-use crate::position::*;
+use crate::chess_game::{ChessGame, Players};
+use crate::piece::{Piece, PieceTypes};
+use crate::position::Position;
 
 #[derive(PartialEq, Eq, Clone, Copy, Hash)]
 #[repr(align(8))]

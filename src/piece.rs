@@ -2,9 +2,9 @@ use std::cell::OnceCell;
 
 use arrayvec::ArrayVec;
 
-use crate::chess_game::*;
-use crate::move_struct::*;
-use crate::position::*;
+use crate::chess_game::{ChessGame, Players};
+use crate::move_struct::Move;
+use crate::position::Position;
 
 #[derive(PartialEq, Eq, Clone, Copy, Debug, Hash, PartialOrd, Ord)]
 pub enum PieceTypes {
@@ -146,9 +146,7 @@ impl Piece {
                                 PieceTypes::Rook,
                                 PieceTypes::Bishop,
                                 PieceTypes::Knight,
-                            ]
-                            .into_iter()
-                            {
+                            ] {
                                 let _move = Move::Promotion {
                                     owner: game.current_player,
                                     start: pos,
@@ -180,9 +178,7 @@ impl Piece {
                                     PieceTypes::Rook,
                                     PieceTypes::Bishop,
                                     PieceTypes::Knight,
-                                ]
-                                .into_iter()
-                                {
+                                ] {
                                     let _move = Move::Promotion {
                                         owner: game.current_player,
                                         start: pos,
@@ -229,9 +225,7 @@ impl Piece {
                     (1, -1),
                     (-1, 1),
                     (-1, -1),
-                ]
-                .into_iter()
-                {
+                ] {
                     if let Some(new_pos) = pos.add(delta) {
                         let place = *game.get_position(new_pos);
                         if !place.is_some_and(|piece| piece.owner == game.current_player) {
@@ -312,9 +306,7 @@ impl Piece {
                     (-2, 1),
                     (-1, 2),
                     (2, -1),
-                ]
-                .into_iter()
-                {
+                ] {
                     if let Some(new_pos) = pos.add(delta) {
                         let place = *game.get_position(new_pos);
                         if !place.is_some_and(|piece| piece.owner == game.current_player) {

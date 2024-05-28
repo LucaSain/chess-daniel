@@ -1,9 +1,9 @@
 use arrayvec::ArrayVec;
 use seq_macro::seq;
 
-use crate::move_struct::*;
-use crate::piece::*;
-use crate::position::*;
+use crate::move_struct::Move;
+use crate::piece::{Piece, PieceTypes};
+use crate::position::Position;
 
 #[derive(PartialEq, Eq, Clone, Copy, Debug, Hash)]
 pub enum Players {
@@ -377,7 +377,7 @@ impl ChessGame {
                             piece_type: PieceTypes::Pawn,
                             owner,
                         }),
-                    )
+                    );
                 }
             }
             Move::CastlingLong { owner } => {
@@ -673,9 +673,7 @@ impl ChessGame {
             (-1, 1),
             (1, -1),
             (-1, -1),
-        ]
-        .into_iter()
-        {
+        ] {
             if let Some(new_pos) = position.add(delta) {
                 if self.get_position(new_pos).is_some_and(|piece| {
                     piece.owner != player && piece.piece_type == PieceTypes::King
@@ -695,9 +693,7 @@ impl ChessGame {
             (-2, 1),
             (-1, 2),
             (2, -1),
-        ]
-        .into_iter()
-        {
+        ] {
             if let Some(new_pos) = position.add(delta) {
                 if self.get_position(new_pos).is_some_and(|piece| {
                     piece.owner != player && piece.piece_type == PieceTypes::Knight
@@ -788,11 +784,7 @@ impl ChessGame {
     }
 
     pub fn get_pgn(&self) -> String {
-        let moves: Vec<_> = self
-            .move_stack
-            .iter()
-            .map(|_move| _move.pgn_notation())
-            .collect();
+        let moves: Vec<_> = self.move_stack.iter().map(Move::pgn_notation).collect();
 
         let mut s = String::new();
 

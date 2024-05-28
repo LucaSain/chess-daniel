@@ -4,8 +4,8 @@ mod piece;
 mod position;
 
 use arrayvec::ArrayVec;
-use chess_game::*;
-use move_struct::*;
+use chess_game::ChessGame;
+use move_struct::Move;
 
 use std::{
     cmp::Ordering,
@@ -46,7 +46,7 @@ fn get_best_move_score(game: &mut ChessGame, depth: u8, mut alpha: i32, beta: i3
             let score = get_best_move_score(game, depth - 5, -beta, -alpha);
             game.pop(*a);
             score
-        })
+        });
     } else if depth >= 2 {
         moves.sort_unstable_by(|a, b| match a {
             Move::Normal {
@@ -85,11 +85,11 @@ fn get_best_move_score(game: &mut ChessGame, depth: u8, mut alpha: i32, beta: i3
             },
 
             _ => Ordering::Less,
-        })
+        });
     }
 
     let mut best_score = i32::MIN + 10;
-    for _move in moves.iter() {
+    for _move in &moves {
         let _move = *_move;
         game.push(_move);
         best_score = best_score.max(-get_best_move_score(game, depth - 1, -beta, -alpha));
