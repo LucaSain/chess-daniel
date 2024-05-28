@@ -411,7 +411,7 @@ impl Piece {
             }
         };
 
-        Ok(Piece { piece_type, owner })
+        Ok(Self { piece_type, owner })
     }
 }
 

@@ -37,13 +37,13 @@ impl Move {
     pub fn uci_notation(&self) -> String {
         let mut s = String::new();
         match self {
-            Move::Normal { start, end, .. } => {
+            Self::Normal { start, end, .. } => {
                 s.push((start.col() as u8 + b'a') as char);
                 s.push((start.row() as u8 + b'1') as char);
                 s.push((end.col() as u8 + b'a') as char);
                 s.push((end.row() as u8 + b'1') as char);
             }
-            Move::Promotion {
+            Self::Promotion {
                 start,
                 end,
                 new_piece,
@@ -61,7 +61,7 @@ impl Move {
                     _ => unreachable!(),
                 });
             }
-            Move::CastlingShort { owner } => {
+            Self::CastlingShort { owner } => {
                 let row = match owner {
                     Players::White => '1',
                     Players::Black => '8',
@@ -71,7 +71,7 @@ impl Move {
                 s.push('g');
                 s.push(row);
             }
-            Move::CastlingLong { owner } => {
+            Self::CastlingLong { owner } => {
                 let row = match owner {
                     Players::White => '1',
                     Players::Black => '8',
@@ -81,7 +81,7 @@ impl Move {
                 s.push('c');
                 s.push(row);
             }
-            Move::EnPassant {
+            Self::EnPassant {
                 owner,
                 start_col,
                 end_col,
@@ -101,7 +101,7 @@ impl Move {
 
     pub fn pgn_notation(&self) -> String {
         match self {
-            Move::Normal {
+            Self::Normal {
                 piece,
                 start,
                 end,
@@ -117,9 +117,9 @@ impl Move {
                 s.push_str((end.row() + 1).to_string().as_str());
                 s
             }
-            Move::CastlingShort { .. } => String::from_str("O-O").unwrap(),
-            Move::CastlingLong { .. } => String::from_str("O-O-O").unwrap(),
-            Move::EnPassant {
+            Self::CastlingShort { .. } => String::from_str("O-O").unwrap(),
+            Self::CastlingLong { .. } => String::from_str("O-O-O").unwrap(),
+            Self::EnPassant {
                 start_col,
                 end_col,
                 owner,
@@ -134,7 +134,7 @@ impl Move {
                 };
                 s
             }
-            Move::Promotion {
+            Self::Promotion {
                 end,
                 captured_piece,
                 new_piece,
@@ -163,19 +163,19 @@ impl Move {
         if s.len() != 4 && s.len() != 5 {
             Err("Invalid move length")
         } else if s == "e1g1" {
-            Ok(Move::CastlingShort {
+            Ok(Self::CastlingShort {
                 owner: Players::White,
             })
         } else if s == "e8g8" {
-            Ok(Move::CastlingShort {
+            Ok(Self::CastlingShort {
                 owner: Players::Black,
             })
         } else if s == "e1c1" {
-            Ok(Move::CastlingLong {
+            Ok(Self::CastlingLong {
                 owner: Players::White,
             })
         } else if s == "e8c8" {
-            Ok(Move::CastlingLong {
+            Ok(Self::CastlingLong {
                 owner: Players::Black,
             })
         } else {
@@ -204,7 +204,7 @@ impl Move {
                     _ => return Err("Invalid piece"),
                 };
 
-                return Ok(Move::Promotion {
+                return Ok(Self::Promotion {
                     owner: game.current_player,
                     start,
                     end,
@@ -219,13 +219,13 @@ impl Move {
                     && game.get_position(end).is_none()
                     && i8::abs(start.col() - end.col()) == 1
                 {
-                    Ok(Move::EnPassant {
+                    Ok(Self::EnPassant {
                         owner: game.current_player,
                         start_col: start.col(),
                         end_col: end.col(),
                     })
                 } else {
-                    Ok(Move::Normal {
+                    Ok(Self::Normal {
                         piece,
                         start,
                         end,
@@ -242,7 +242,7 @@ impl Move {
 impl std::fmt::Debug for Move {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match self {
-            Move::Normal {
+            Self::Normal {
                 piece,
                 start,
                 end,
@@ -258,8 +258,8 @@ impl std::fmt::Debug for Move {
                 end.col(),
                 captured_piece.map(|piece| format!("{:?} {:?}", piece.owner, piece.piece_type))
             ),
-            Move::CastlingLong { owner } => write!(f, "castling long {:?} ", *owner),
-            Move::CastlingShort { owner } => write!(f, "castling short {:?} ", *owner),
+            Self::CastlingLong { owner } => write!(f, "castling long {:?} ", *owner),
+            Self::CastlingShort { owner } => write!(f, "castling short {:?} ", *owner),
             _ => write!(f, "not supported"),
         }
     }

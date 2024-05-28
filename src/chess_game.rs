@@ -24,7 +24,7 @@ pub struct GameState {
 
 impl Default for GameState {
     fn default() -> Self {
-        GameState {
+        Self {
             en_passant: -1,
             white_king_castling: true,
             white_queen_castling: true,
@@ -57,7 +57,7 @@ impl Players {
 impl Default for ChessGame {
     fn default() -> Self {
         #[rustfmt::skip]
-        let mut game = ChessGame {
+        let mut game = Self {
             board: [
                 [
                     Some(Piece {piece_type: PieceTypes::Rook, owner: Players::White}),
@@ -101,7 +101,7 @@ impl Default for ChessGame {
 }
 
 impl ChessGame {
-    pub fn new(fen: &str) -> Result<ChessGame, &str> {
+    pub fn new(fen: &str) -> Result<Self, &str> {
         let mut terms = fen.split_ascii_whitespace();
 
         let mut board = [[None; 8]; 8];
@@ -193,7 +193,7 @@ impl ChessGame {
             return Err("Invalid FEN");
         }
 
-        let mut game = ChessGame {
+        let mut game = Self {
             board,
             move_stack: Vec::with_capacity(1000),
             king_positions: [white_king_pos, black_king_pos],
