@@ -18,7 +18,6 @@ fn get_best_move_score(game: &mut ChessGame, depth: u8, mut alpha: i32, beta: i3
         return game.score * (game.current_player as i32);
     }
     let player = game.current_player;
-    let state = *game.state();
     let mut moves = ArrayVec::new();
     game.get_moves(&mut moves, depth >= 3);
 
@@ -57,17 +56,10 @@ fn get_best_move_score(game: &mut ChessGame, depth: u8, mut alpha: i32, beta: i3
                 Move::Normal {
                     captured_piece: capture_b,
                     piece: piece_b,
-                    end: end_b,
                     ..
                 } => {
                     if let Some(cap_piece_a) = capture_a {
                         if let Some(cap_piece_b) = capture_b {
-                            if let Some(pos) = state.last_position {
-                                if pos == *end_b {
-                                    return Ordering::Greater;
-                                }
-                            }
-
                             if cap_piece_a != cap_piece_b {
                                 return cap_piece_a.piece_type.cmp(&cap_piece_b.piece_type);
                             }

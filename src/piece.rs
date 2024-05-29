@@ -201,7 +201,7 @@ impl Piece {
                     }
                 }
 
-                let valid_en_passant = game.state().en_passant;
+                let valid_en_passant = game.state().en_passant();
                 if pos.row() == en_passant_row
                     && valid_en_passant < 8
                     && i8::abs(valid_en_passant - pos.col()) == 1

@@ -15,52 +15,57 @@ pub enum Players {
 /// Because of that, we hold it in a stack in the ChessGame struct
 #[derive(Clone, Copy, Debug)]
 pub struct GameState {
-    pub en_passant: i8,
-    pub last_position: Option<Position>,
+    /// First 4 bits represent en passant
     /// The last 4 bits of castling_rights indicate castling rights
-    /// 32 bits for this value produce the best assembly
-    castling_rights: u32,
+    bitfield: u8,
 }
 
 impl GameState {
+    pub fn en_passant(self) -> i8 {
+        (self.bitfield & 0b1111) as i8
+    }
+    pub fn set_en_passant(&mut self, value: i8) {
+        self.bitfield = (self.bitfield & 0b11110000) + (value as u8);
+    }
+
     pub fn white_king_castling(self) -> bool {
-        ((self.castling_rights >> 0) & 1) == 1
+        (self.bitfield & (1 << 4)) != 0
     }
     pub fn set_white_king_castling_false(&mut self) {
-        self.castling_rights &= !(1 << 0);
+        self.bitfield &= !(1 << 4);
     }
     pub fn set_white_king_castling_true(&mut self) {
-        self.castling_rights |= 1 << 0;
+        self.bitfield |= 1 << 4;
     }
 
     pub fn white_queen_castling(self) -> bool {
-        ((self.castling_rights >> 1) & 1) == 1
+        (self.bitfield & (1 << 5)) != 0
     }
     pub fn set_white_queen_castling_false(&mut self) {
-        self.castling_rights &= !(1 << 1);
+        self.bitfield &= !(1 << 5);
     }
     pub fn set_white_queen_castling_true(&mut self) {
-        self.castling_rights |= 1 << 1;
+        self.bitfield |= 1 << 5;
     }
 
     pub fn black_king_castling(self) -> bool {
-        ((self.castling_rights >> 2) & 1) == 1
+        (self.bitfield & (1 << 6)) != 0
     }
     pub fn set_black_king_castling_false(&mut self) {
-        self.castling_rights &= !(1 << 2);
+        self.bitfield &= !(1 << 6);
     }
     pub fn set_black_king_castling_true(&mut self) {
-        self.castling_rights |= 1 << 2;
+        self.bitfield |= 1 << 6;
     }
 
     pub fn black_queen_castling(self) -> bool {
-        ((self.castling_rights >> 3) & 1) == 1
+        (self.bitfield & (1 << 7)) != 0
     }
     pub fn set_black_queen_castling_false(&mut self) {
-        self.castling_rights &= !(1 << 3);
+        self.bitfield &= !(1 << 7);
     }
     pub fn set_black_queen_castling_true(&mut self) {
-        self.castling_rights |= 1 << 3;
+        self.bitfield |= 1 << 7;
     }
 }
 
@@ -69,9 +74,7 @@ impl Default for GameState {
     fn default() -> Self {
         Self {
             // 8 Represents no en passant square
-            en_passant: 8,
-            castling_rights: 0,
-            last_position: None,
+            bitfield: 8,
         }
     }
 }
@@ -221,8 +224,8 @@ impl ChessGame {
             if en_passant != "-" {
                 let mut chars = en_passant.chars();
                 if let Some(col) = chars.next() {
-                    state.en_passant = ((col as u8) - b'a') as i8;
-                    if !(0..8).contains(&state.en_passant) {
+                    state.set_en_passant(((col as u8) - b'a') as i8);
+                    if !(0..8).contains(&state.en_passant()) {
                         return Err("Invalid FEN");
                     }
                 } else {
@@ -312,16 +315,12 @@ impl ChessGame {
 
     pub fn push(&mut self, _move: Move) {
         let mut state = *self.state();
-        state.en_passant = 8;
+        state.set_en_passant(8);
         match _move {
             #[rustfmt::skip]
             Move::Normal { piece, start, end, captured_piece } => {
                 self.set_position(start, None);
                 self.set_position(end, Some(piece));
-
-                if captured_piece.is_some() {
-                    state.last_position = Some(end);
-                }
 
                 if piece.piece_type == PieceTypes::King {
                     self.set_king_position(self.current_player, end);
@@ -372,11 +371,11 @@ impl ChessGame {
                 }
 
                 if piece.piece_type == PieceTypes::Pawn && i8::abs(end.row() - start.row()) == 2 {
-                    state.en_passant = start.col();
+                    state.set_en_passant(start.col());
                 }
             }
             #[rustfmt::skip]
-            Move::Promotion { owner, start, end, captured_piece, new_piece } => {
+            Move::Promotion { owner, start, end, new_piece, .. } => {
                 self.set_position(start, None);
                 self.set_position(
                     end,
@@ -385,10 +384,6 @@ impl ChessGame {
                         piece_type: new_piece,
                     }),
                 );
-
-                if captured_piece.is_some() {
-                    state.last_position = Some(end);
-                }
             }
             Move::EnPassant {
                 owner,
