@@ -1,4 +1,5 @@
 mod chess_game;
+mod gamestate;
 mod move_struct;
 mod piece;
 mod position;

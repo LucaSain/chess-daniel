@@ -1,6 +1,7 @@
 use arrayvec::ArrayVec;
 use seq_macro::seq;
 
+use crate::gamestate::GameState;
 use crate::move_struct::Move;
 use crate::piece::{Piece, PieceTypes};
 use crate::position::Position;
@@ -9,74 +10,6 @@ use crate::position::Position;
 pub enum Players {
     White = 1,
     Black = -1,
-}
-
-/// Information about the state of the game at a moment in time that can't be derived easily
-/// Because of that, we hold it in a stack in the ChessGame struct
-#[derive(Clone, Copy, Debug)]
-pub struct GameState {
-    /// First 4 bits represent en passant
-    /// The last 4 bits of castling_rights indicate castling rights
-    bitfield: u8,
-}
-
-impl GameState {
-    pub fn en_passant(self) -> i8 {
-        (self.bitfield & 0b1111) as i8
-    }
-    pub fn set_en_passant(&mut self, value: i8) {
-        self.bitfield = (self.bitfield & 0b11110000) + (value as u8);
-    }
-
-    pub fn white_king_castling(self) -> bool {
-        (self.bitfield & (1 << 4)) != 0
-    }
-    pub fn set_white_king_castling_false(&mut self) {
-        self.bitfield &= !(1 << 4);
-    }
-    pub fn set_white_king_castling_true(&mut self) {
-        self.bitfield |= 1 << 4;
-    }
-
-    pub fn white_queen_castling(self) -> bool {
-        (self.bitfield & (1 << 5)) != 0
-    }
-    pub fn set_white_queen_castling_false(&mut self) {
-        self.bitfield &= !(1 << 5);
-    }
-    pub fn set_white_queen_castling_true(&mut self) {
-        self.bitfield |= 1 << 5;
-    }
-
-    pub fn black_king_castling(self) -> bool {
-        (self.bitfield & (1 << 6)) != 0
-    }
-    pub fn set_black_king_castling_false(&mut self) {
-        self.bitfield &= !(1 << 6);
-    }
-    pub fn set_black_king_castling_true(&mut self) {
-        self.bitfield |= 1 << 6;
-    }
-
-    pub fn black_queen_castling(self) -> bool {
-        (self.bitfield & (1 << 7)) != 0
-    }
-    pub fn set_black_queen_castling_false(&mut self) {
-        self.bitfield &= !(1 << 7);
-    }
-    pub fn set_black_queen_castling_true(&mut self) {
-        self.bitfield |= 1 << 7;
-    }
-}
-
-impl Default for GameState {
-    /// Default state is no en passant square, and no castling rights
-    fn default() -> Self {
-        Self {
-            // 8 Represents no en passant square
-            bitfield: 8,
-        }
-    }
 }
 
 #[derive(Clone)]
