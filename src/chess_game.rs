@@ -593,6 +593,14 @@ impl ChessGame {
             return;
         }
 
+        let mut push = |_move| {
+            // SAFETY: The number of possible moves on the board at any given time
+            // will never exceed the arrays capacity (256)
+            unsafe {
+                moves.push_unchecked(_move);
+            }
+        };
+
         seq!(row in 0..8 {
             seq!(col in 0..8 {
                 // SAFETY: Theses are hardcoded valid positions,
@@ -605,7 +613,7 @@ impl ChessGame {
                         {
                             if piece.owner == self.current_player {
                                 let pos = Position::new_unsafe(row, col);
-                                piece.get_moves(moves, self, pos);
+                                piece.get_moves(&mut push, self, pos);
                             }
                         }
                     }
