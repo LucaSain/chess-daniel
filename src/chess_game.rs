@@ -3,7 +3,7 @@ use seq_macro::seq;
 
 use crate::gamestate::GameState;
 use crate::move_struct::Move;
-use crate::piece::{Piece, PieceTypes};
+use crate::piece::{Piece, PieceTypes, Score};
 use crate::position::Position;
 
 #[derive(PartialEq, Eq, Clone, Copy, Debug, Hash)]
@@ -18,6 +18,7 @@ pub struct ChessGame {
     pub current_player: Players,
     pub move_stack: Vec<Move>,
     board: [[Option<Piece>; 8]; 8],
+    past_scores: [[Score; 8]; 8],
     king_positions: [Position; 2],
     state: ArrayVec<GameState, 512>,
 }
@@ -61,7 +62,7 @@ impl Default for ChessGame {
                     Some(Piece {piece_type: PieceTypes::Bishop, owner: Players::Black}),
                     Some(Piece {piece_type: PieceTypes::Knight, owner: Players::Black}),
                     Some(Piece {piece_type: PieceTypes::Rook, owner: Players::Black}),
-                ],
+            ],
             ],
             move_stack: Vec::with_capacity(1000),
             king_positions: [
@@ -71,6 +72,7 @@ impl Default for ChessGame {
             current_player: Players::White,
             score: 0,
             state: ArrayVec::new(),
+            past_scores: [[0; 8]; 8],
         };
 
         let mut state = GameState::default();
@@ -80,6 +82,14 @@ impl Default for ChessGame {
         state.set_black_queen_castling_true();
 
         game.state.push(state);
+
+        for i in 0..8 {
+            for j in 0..8 {
+                let position = Position::new(i, j).unwrap();
+                game.set_position(position, *game.get_position(position));
+            }
+        }
+
         game
     }
 }
@@ -176,6 +186,7 @@ impl ChessGame {
             current_player,
             score: 0,
             state: ArrayVec::new(),
+            past_scores: [[0; 8]; 8],
         };
 
         game.state.push(state);
@@ -197,22 +208,24 @@ impl ChessGame {
 
     fn set_position(&mut self, position: Position, new_place: Option<Piece>) {
         // SAFETY: position is always valid
-        unsafe {
-            let place = self
-                .board
-                .get_unchecked_mut(position.row() as usize)
-                .get_unchecked_mut(position.col() as usize);
+        let (place, place_score) = unsafe {
+            (
+                self.board
+                    .get_unchecked_mut(position.row() as usize)
+                    .get_unchecked_mut(position.col() as usize),
+                self.past_scores
+                    .get_unchecked_mut(position.row() as usize)
+                    .get_unchecked_mut(position.col() as usize),
+            )
+        };
 
-            if let Some(piece) = place {
-                self.score -= piece.score(position);
-            }
+        self.score -= *place_score;
 
-            *place = new_place;
+        *place = new_place;
 
-            if let Some(piece) = place {
-                self.score += piece.score(position);
-            }
-        }
+        *place_score = place.map(|piece| piece.score(position)).unwrap_or(0);
+
+        self.score += *place_score;
     }
 
     pub fn get_king_position(&self, player: Players) -> Position {

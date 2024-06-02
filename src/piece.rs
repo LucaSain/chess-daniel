@@ -20,8 +20,10 @@ pub struct Piece {
     pub owner: Players,
 }
 
+pub type Score = i32;
+
 impl Piece {
-    pub fn score(self, pos: Position) -> i32 {
+    pub fn score(self, pos: Position) -> Score {
         // SAFETY: Position is always valid
         unsafe {
             let piece_score = *match self.piece_type {
@@ -40,7 +42,7 @@ impl Piece {
                 PieceTypes::King => 100,
                 _ => *[96, 97, 98, 100, 100, 98, 97, 96].get_unchecked(pos.col() as usize),
             };
-            piece_score * col_score * (self.owner as i32)
+            piece_score * col_score * (self.owner as Score)
         }
     }
 

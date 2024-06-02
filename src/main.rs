@@ -7,6 +7,7 @@ mod position;
 use arrayvec::ArrayVec;
 use chess_game::ChessGame;
 use move_struct::Move;
+use piece::Score;
 
 use std::{
     cmp::Ordering,
@@ -14,9 +15,9 @@ use std::{
     time::{Duration, Instant},
 };
 
-fn get_best_move_score(game: &mut ChessGame, depth: u8, mut alpha: i32, beta: i32) -> i32 {
+fn get_best_move_score(game: &mut ChessGame, depth: u8, mut alpha: Score, beta: Score) -> Score {
     if depth == 0 {
-        return game.score * (game.current_player as i32);
+        return game.score * (game.current_player as Score);
     }
     let player = game.current_player;
     let mut moves = ArrayVec::new();
@@ -27,7 +28,7 @@ fn get_best_move_score(game: &mut ChessGame, depth: u8, mut alpha: i32, beta: i3
             return 0;
         } else {
             // The earlier the mate the worse the score for the losing player
-            return i32::MIN + 100 + game.len() as i32;
+            return Score::MIN + 100 + game.len() as Score;
         }
     } else if moves.len() == 1 {
         // If there is only one move available push it and don't decrease depth
@@ -81,7 +82,7 @@ fn get_best_move_score(game: &mut ChessGame, depth: u8, mut alpha: i32, beta: i3
         });
     }
 
-    let mut best_score = i32::MIN + 10;
+    let mut best_score = Score::MIN + 10;
     for _move in &moves {
         let _move = *_move;
         game.push(_move);
@@ -96,7 +97,7 @@ fn get_best_move_score(game: &mut ChessGame, depth: u8, mut alpha: i32, beta: i3
     best_score
 }
 
-fn get_best_move(game: &mut ChessGame, depth: u8) -> (Option<Move>, i32, bool) {
+fn get_best_move(game: &mut ChessGame, depth: u8) -> (Option<Move>, Score, bool) {
     let mut moves = ArrayVec::new();
     game.get_moves(&mut moves, true);
 
@@ -106,12 +107,12 @@ fn get_best_move(game: &mut ChessGame, depth: u8) -> (Option<Move>, i32, bool) {
     }
 
     let mut best_move = None;
-    let mut best_score = -i32::MAX;
+    let mut best_score = -Score::MAX;
 
     for _move in moves {
         game.push(_move);
         // Initially alpha == beta
-        let score = -get_best_move_score(game, depth - 1, i32::MIN + 1, -best_score);
+        let score = -get_best_move_score(game, depth - 1, Score::MIN + 1, -best_score);
         game.pop(_move);
         if score > best_score {
             best_score = score;
@@ -124,7 +125,7 @@ fn get_best_move(game: &mut ChessGame, depth: u8) -> (Option<Move>, i32, bool) {
 
 fn get_best_move_in_time(game: &mut ChessGame, duration: Duration) -> Option<Move> {
     let now = Instant::now();
-    let mut last_score: Option<i32> = None;
+    let mut last_score: Option<Score> = None;
     for depth in 5..20 {
         let (best_move, best_score, is_only_move) = get_best_move(game, depth);
         let average_score = match last_score {
@@ -137,7 +138,7 @@ fn get_best_move_in_time(game: &mut ChessGame, duration: Duration) -> Option<Mov
         println!("info score cp {}", average_score / 100);
         // If mate can be forced, or there is only a single move available, stop searching
         let elapsed_time = now.elapsed();
-        if elapsed_time > duration || is_only_move || best_score > i32::MAX - 1000 {
+        if elapsed_time > duration || is_only_move || best_score > Score::MAX - 1000 {
             return best_move;
         }
     }
