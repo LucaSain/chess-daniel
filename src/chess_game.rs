@@ -599,27 +599,13 @@ impl ChessGame {
     }
 
     /// Returns if player's position is targeted by enemy pieces
+    ///
+    /// This function is ONLY used for testing castling rights and if a king is in check
+    ///
+    /// Thus I considered it unnecessary to verify if the square is targeted by a king,
+    /// since I already verify that moves don't put kings near each other and a king blocking
+    /// a castling move is so unlikely I don't want to waste time on it.
     pub fn is_targeted(&self, position: Position, player: Players) -> bool {
-        // Verifiy for kings
-        for delta in [
-            (1, 0),
-            (0, 1),
-            (-1, 0),
-            (0, -1),
-            (1, 1),
-            (-1, 1),
-            (1, -1),
-            (-1, -1),
-        ] {
-            if let Some(new_pos) = position.add(delta) {
-                if self.get_position(new_pos).is_some_and(|piece| {
-                    piece.owner != player && piece.piece_type == PieceTypes::King
-                }) {
-                    return true;
-                }
-            }
-        }
-
         // Verify for knights
         for delta in [
             (1, 2),
