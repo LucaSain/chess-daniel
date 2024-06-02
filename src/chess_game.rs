@@ -43,85 +43,99 @@ impl ChessGame {
         let mut terms = fen.split_ascii_whitespace();
 
         let mut board = [None; 64];
-        let mut white_king_pos = Position::new(0, 0).unwrap();
-        let mut black_king_pos = Position::new(0, 0).unwrap();
+        let mut white_king_pos = None;
+        let mut black_king_pos = None;
 
-        if let Some(pieces) = terms.next() {
-            let mut row = 7;
-            let mut col = 0;
-            for character in pieces.chars() {
-                match character {
-                    '/' => {
-                        if row == 0 {
-                            return Err("Too many rows");
-                        }
-                        col = 0;
-                        row -= 1;
-                    }
-                    piece if piece.is_ascii_alphabetic() => {
-                        if col == 8 {
-                            return Err("Too many columns");
-                        }
-                        let piece = Piece::from_char_ascii(piece)?;
-                        if piece.piece_type == PieceTypes::King {
-                            match piece.owner {
-                                Players::White => white_king_pos = Position::new(row, col).unwrap(),
-                                Players::Black => black_king_pos = Position::new(row, col).unwrap(),
-                            }
-                        }
-                        board[(row * 8 + col) as usize] = Some(piece);
-                        col += 1;
-                    }
-                    empty_count if character.is_ascii_digit() => {
-                        col += (empty_count as u8 - b'0') as i8;
-                    }
-                    _ => return Err("Unknown character met"),
-                }
-            }
-        } else {
-            return Err("Invalid FEN");
-        }
-
-        let current_player = if let Some(next_player) = terms.next() {
-            match next_player.chars().next().unwrap() {
-                'w' => Players::White,
-                'b' => Players::Black,
-                _ => return Err("Invalid FEN"),
-            }
-        } else {
+        let Some(pieces) = terms.next() else {
             return Err("Invalid FEN");
         };
 
-        let mut state = GameState::default();
-        if let Some(castling_rights) = terms.next() {
-            for right in castling_rights.chars() {
-                match right {
-                    'K' => state.set_white_king_castling_true(),
-                    'Q' => state.set_white_queen_castling_true(),
-                    'k' => state.set_black_king_castling_true(),
-                    'q' => state.set_black_queen_castling_true(),
-                    _ => continue,
+        let mut row = 7;
+        let mut col = 0;
+        for character in pieces.chars() {
+            match character {
+                '/' => {
+                    if row == 0 {
+                        return Err("Too many rows");
+                    }
+                    col = 0;
+                    row -= 1;
                 }
+                piece if piece.is_ascii_alphabetic() => {
+                    if col == 8 {
+                        return Err("Too many columns");
+                    }
+                    let piece = Piece::from_char_ascii(piece)?;
+                    if piece.piece_type == PieceTypes::King {
+                        match piece.owner {
+                            Players::White => {
+                                white_king_pos = Some(Position::new(row, col).unwrap())
+                            }
+                            Players::Black => {
+                                black_king_pos = Some(Position::new(row, col).unwrap())
+                            }
+                        }
+                    }
+                    let position = Position::new(row, col).unwrap();
+                    board[position.as_usize()] = Some(piece);
+                    col += 1;
+                }
+                empty_count if character.is_ascii_digit() => {
+                    col += (empty_count as u8 - b'0') as i8;
+                }
+                _ => return Err("Unknown character met"),
             }
-        } else {
-            return Err("Invalid FEN");
         }
 
-        if let Some(en_passant) = terms.next() {
-            if en_passant != "-" {
-                let mut chars = en_passant.chars();
-                if let Some(col) = chars.next() {
-                    state.set_en_passant(((col as u8) - b'a') as i8);
-                    if !(0..8).contains(&state.en_passant()) {
-                        return Err("Invalid FEN");
-                    }
-                } else {
+        let Some(next_player) = terms.next() else {
+            return Err("Invalid FEN");
+        };
+
+        let current_player = match next_player.chars().next().unwrap() {
+            'w' => Players::White,
+            'b' => Players::Black,
+            _ => return Err("Invalid FEN"),
+        };
+
+        let mut state = GameState::default();
+
+        let Some(castling_rights) = terms.next() else {
+            return Err("Invalid FEN");
+        };
+
+        for right in castling_rights.chars() {
+            match right {
+                'K' => state.set_white_king_castling_true(),
+                'Q' => state.set_white_queen_castling_true(),
+                'k' => state.set_black_king_castling_true(),
+                'q' => state.set_black_queen_castling_true(),
+                _ => continue,
+            }
+        }
+
+        let Some(en_passant) = terms.next() else {
+            return Err("Invalid FEN");
+        };
+
+        if en_passant != "-" {
+            let mut chars = en_passant.chars();
+            if let Some(col) = chars.next() {
+                state.set_en_passant(((col as u8) - b'a') as i8);
+                if !(0..8).contains(&state.en_passant()) {
                     return Err("Invalid FEN");
                 }
+            } else {
+                return Err("Invalid FEN");
             }
-        } else {
-            return Err("Invalid FEN");
         }
+
+        let Some(white_king_pos) = white_king_pos else {
+            return Err("White king not found");
+        };
+
+        let Some(black_king_pos) = black_king_pos else {
+            return Err("Black king not found");
+        };
 
         let mut game = Self {
             board,
