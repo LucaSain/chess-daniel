@@ -265,6 +265,17 @@ fn main() {
                 get_best_move(&mut game, i);
             }
             return;
+        } else if arg == "teststart" {
+            // Generate best moves for a couple different positions
+            // This is used for benchmarking and PGO optimization
+            let depth = args
+                .next()
+                .unwrap_or(String::from("7"))
+                .parse()
+                .unwrap_or(7);
+            let mut game = ChessGame::default();
+            get_best_move(&mut game, depth);
+            return;
         } else if arg == "auto" {
             let mut game = ChessGame::default();
             let time = args.next().unwrap().parse().unwrap();
