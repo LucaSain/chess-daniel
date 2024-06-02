@@ -1,6 +1,7 @@
 mod chess_game;
 mod gamestate;
 mod move_struct;
+mod performance_test;
 mod piece;
 mod position;
 
@@ -266,8 +267,6 @@ fn main() {
             }
             return;
         } else if arg == "teststart" {
-            // Generate best moves for a couple different positions
-            // This is used for benchmarking and PGO optimization
             let depth = args
                 .next()
                 .unwrap_or(String::from("7"))
@@ -275,6 +274,16 @@ fn main() {
                 .unwrap_or(7);
             let mut game = ChessGame::default();
             get_best_move(&mut game, depth);
+            return;
+        } else if arg == "perft" {
+            let depth = args
+                .next()
+                .unwrap_or(String::from("7"))
+                .parse()
+                .unwrap_or(7);
+            let mut game = ChessGame::default();
+            let result = performance_test::perft(&mut game, depth);
+            println!("{result}");
             return;
         } else if arg == "auto" {
             let mut game = ChessGame::default();
@@ -297,6 +306,3 @@ fn main() {
     // Enter UCI mode
     uci_talk();
 }
-
-#[cfg(test)]
-mod performance_test;
