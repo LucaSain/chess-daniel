@@ -17,8 +17,8 @@ pub struct ChessGame {
     pub score: i32,
     pub current_player: Players,
     pub move_stack: Vec<Move>,
-    board: [[Option<Piece>; 8]; 8],
-    past_scores: [[Score; 8]; 8],
+    board: [Option<Piece>; 64],
+    past_scores: [Score; 64],
     king_positions: [Position; 2],
     state: ArrayVec<GameState, 512>,
 }
@@ -34,63 +34,7 @@ impl Players {
 
 impl Default for ChessGame {
     fn default() -> Self {
-        #[rustfmt::skip]
-        let mut game = Self {
-            board: [
-                [
-                    Some(Piece {piece_type: PieceTypes::Rook, owner: Players::White}),
-                    Some(Piece {piece_type: PieceTypes::Knight, owner: Players::White}),
-                    Some(Piece {piece_type: PieceTypes::Bishop, owner: Players::White}),
-                    Some(Piece {piece_type: PieceTypes::Queen, owner: Players::White}),
-                    Some(Piece {piece_type: PieceTypes::King, owner: Players::White}),
-                    Some(Piece {piece_type: PieceTypes::Bishop, owner: Players::White}),
-                    Some(Piece {piece_type: PieceTypes::Knight, owner: Players::White}),
-                    Some(Piece {piece_type: PieceTypes::Rook, owner: Players::White}),
-                ],
-                [Some(Piece {piece_type: PieceTypes::Pawn, owner: Players::White}); 8],
-                [None; 8],
-                [None; 8],
-                [None; 8],
-                [None; 8],
-                [Some(Piece {piece_type: PieceTypes::Pawn, owner: Players::Black}); 8],
-                [
-                    Some(Piece {piece_type: PieceTypes::Rook, owner: Players::Black}),
-                    Some(Piece {piece_type: PieceTypes::Knight, owner: Players::Black}),
-                    Some(Piece {piece_type: PieceTypes::Bishop, owner: Players::Black}),
-                    Some(Piece {piece_type: PieceTypes::Queen, owner: Players::Black}),
-                    Some(Piece {piece_type: PieceTypes::King, owner: Players::Black}),
-                    Some(Piece {piece_type: PieceTypes::Bishop, owner: Players::Black}),
-                    Some(Piece {piece_type: PieceTypes::Knight, owner: Players::Black}),
-                    Some(Piece {piece_type: PieceTypes::Rook, owner: Players::Black}),
-            ],
-            ],
-            move_stack: Vec::with_capacity(1000),
-            king_positions: [
-                Position::new(0, 4).unwrap(),
-                Position::new(7, 4).unwrap(),
-            ],
-            current_player: Players::White,
-            score: 0,
-            state: ArrayVec::new(),
-            past_scores: [[0; 8]; 8],
-        };
-
-        let mut state = GameState::default();
-        state.set_white_king_castling_true();
-        state.set_white_queen_castling_true();
-        state.set_black_king_castling_true();
-        state.set_black_queen_castling_true();
-
-        game.state.push(state);
-
-        for i in 0..8 {
-            for j in 0..8 {
-                let position = Position::new(i, j).unwrap();
-                game.set_position(position, *game.get_position(position));
-            }
-        }
-
-        game
+        ChessGame::new("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1").unwrap()
     }
 }
 
@@ -98,7 +42,7 @@ impl ChessGame {
     pub fn new(fen: &str) -> Result<Self, &str> {
         let mut terms = fen.split_ascii_whitespace();
 
-        let mut board = [[None; 8]; 8];
+        let mut board = [None; 64];
         let mut white_king_pos = Position::new(0, 0).unwrap();
         let mut black_king_pos = Position::new(0, 0).unwrap();
 
@@ -125,7 +69,7 @@ impl ChessGame {
                                 Players::Black => black_king_pos = Position::new(row, col).unwrap(),
                             }
                         }
-                        board[row as usize][col as usize] = Some(piece);
+                        board[(row * 8 + col) as usize] = Some(piece);
                         col += 1;
                     }
                     empty_count if character.is_ascii_digit() => {
@@ -186,7 +130,7 @@ impl ChessGame {
             current_player,
             score: 0,
             state: ArrayVec::new(),
-            past_scores: [[0; 8]; 8],
+            past_scores: [0; 64],
         };
 
         game.state.push(state);
@@ -199,23 +143,15 @@ impl ChessGame {
 
     pub fn get_position(&self, position: Position) -> &Option<Piece> {
         // SAFETY: position is always valid
-        unsafe {
-            self.board
-                .get_unchecked(position.row() as usize)
-                .get_unchecked(position.col() as usize)
-        }
+        unsafe { self.board.get_unchecked(position.as_usize()) }
     }
 
     fn set_position(&mut self, position: Position, new_place: Option<Piece>) {
         // SAFETY: position is always valid
         let (place, place_score) = unsafe {
             (
-                self.board
-                    .get_unchecked_mut(position.row() as usize)
-                    .get_unchecked_mut(position.col() as usize),
-                self.past_scores
-                    .get_unchecked_mut(position.row() as usize)
-                    .get_unchecked_mut(position.col() as usize),
+                self.board.get_unchecked_mut(position.as_usize()),
+                self.past_scores.get_unchecked_mut(position.as_usize()),
             )
         };
 
@@ -618,18 +554,12 @@ impl ChessGame {
             seq!(col in 0..8 {
                 // SAFETY: Theses are hardcoded valid positions,
                 // and moves is empty at the beginning
-                unsafe {
-                    if let Some(piece) = *self
-                            .board
-                            .get_unchecked(row)
-                            .get_unchecked(col)
-                        {
-                            if piece.owner == self.current_player {
-                                let pos = Position::new_unsafe(row, col);
-                                piece.get_moves(&mut push, self, pos);
-                            }
-                        }
+                let pos = unsafe { Position::new_unsafe(row, col) };
+                if let Some(piece) = self.get_position(pos) {
+                    if piece.owner == self.current_player {
+                        piece.get_moves(&mut push, self, pos);
                     }
+                }
             });
         });
 
@@ -798,17 +728,21 @@ impl ChessGame {
 impl std::fmt::Debug for ChessGame {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         writeln!(f)?;
-        self.board
-            .iter()
-            .enumerate()
-            .rev()
-            .try_for_each(|(i, row)| -> std::fmt::Result {
-                write!(f, "{} ", i + 1)?;
-                row.iter().try_for_each(|place| -> std::fmt::Result {
-                    write!(f, "|{}", place.map(|piece| piece.as_char()).unwrap_or(' '))
-                })?;
-                writeln!(f, "|")
-            })?;
+
+        for i in (0..8).rev() {
+            write!(f, "{} ", i + 1)?;
+            for j in 0..8 {
+                let position = Position::new(i, j).unwrap();
+                write!(
+                    f,
+                    "|{}",
+                    self.get_position(position)
+                        .map(|piece| piece.as_char())
+                        .unwrap_or(' ')
+                )?;
+            }
+            writeln!(f, "|")?;
+        }
         writeln!(f, "\n   a b c d e f g h")
     }
 }

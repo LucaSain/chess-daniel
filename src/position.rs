@@ -49,4 +49,9 @@ impl Position {
         debug_assert!((0..8).contains(&row) && (0..8).contains(&col));
         Self(row, col)
     }
+
+    /// Returns the index this position would take in a linear board array
+    pub fn as_usize(self) -> usize {
+        (self.0 * 8 + self.1) as usize
+    }
 }
