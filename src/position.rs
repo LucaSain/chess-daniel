@@ -51,6 +51,7 @@ impl Position {
     }
 
     /// Returns the index this position would take in a linear board array
+    /// i.e. it always lies in 0..64
     pub fn as_usize(self) -> usize {
         (self.0 * 8 + self.1) as usize
     }
