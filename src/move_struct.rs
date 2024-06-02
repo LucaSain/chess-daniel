@@ -159,22 +159,26 @@ impl Move {
         }
     }
 
-    pub fn from_uci_notation(s: &str, game: &ChessGame) -> Result<Self, &'static str> {
-        if s.len() != 4 && s.len() != 5 {
-            Err("Invalid move length")
-        } else if s == "e1g1" {
+    pub fn from_uci_notation(s: &str, game: &ChessGame) -> Result<Self, ()> {
+        if s == "e1g1" && game.get_king_position(Players::White) == Position::new(0, 4).unwrap() {
             Ok(Self::CastlingShort {
                 owner: Players::White,
             })
-        } else if s == "e8g8" {
+        } else if s == "e8g8"
+            && game.get_king_position(Players::Black) == Position::new(7, 4).unwrap()
+        {
             Ok(Self::CastlingShort {
                 owner: Players::Black,
             })
-        } else if s == "e1c1" {
+        } else if s == "e1c1"
+            && game.get_king_position(Players::White) == Position::new(0, 4).unwrap()
+        {
             Ok(Self::CastlingLong {
                 owner: Players::White,
             })
-        } else if s == "e8c8" {
+        } else if s == "e8c8"
+            && game.get_king_position(Players::Black) == Position::new(7, 4).unwrap()
+        {
             Ok(Self::CastlingLong {
                 owner: Players::Black,
             })
@@ -185,23 +189,16 @@ impl Move {
             let end_col = chars.next().unwrap().wrapping_sub(b'a') as i8;
             let end_row = chars.next().unwrap().wrapping_sub(b'1') as i8;
 
-            let start = Position::new(start_row, start_col);
-            let end = Position::new(end_row, end_col);
-
-            if start.is_none() || end.is_none() {
-                return Err("Invalid position");
-            }
-
-            let start = start.unwrap();
-            let end = end.unwrap();
+            let start = unsafe { Position::new_unsafe(start_row, start_col) };
+            let end = unsafe { Position::new_unsafe(end_row, end_col) };
 
             if s.len() == 5 {
                 let new_piece = match s.chars().nth(4).unwrap() {
-                    'q' => PieceTypes::Queen,
-                    'r' => PieceTypes::Rook,
-                    'k' => PieceTypes::Bishop,
-                    'b' => PieceTypes::Knight,
-                    _ => return Err("Invalid piece"),
+                    'q' | 'Q' => PieceTypes::Queen,
+                    'r' | 'R' => PieceTypes::Rook,
+                    'n' | 'N' => PieceTypes::Knight,
+                    'b' | 'B' => PieceTypes::Bishop,
+                    _ => return Err(()),
                 };
 
                 return Ok(Self::Promotion {
@@ -234,7 +231,7 @@ impl Move {
                 };
             }
 
-            Err("Start square is empty")
+            Err(())
         }
     }
 }
