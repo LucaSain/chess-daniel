@@ -1,4 +1,4 @@
-#[derive(PartialEq, Eq, Clone, Copy, Debug, Hash)]
+#[derive(PartialEq, Eq, Clone, Copy, Debug)]
 /// This struct should always contain a valid position.
 /// That is, values for row and col are always in 0..8
 #[repr(align(2))]

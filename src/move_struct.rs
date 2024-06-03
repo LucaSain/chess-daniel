@@ -4,7 +4,7 @@ use crate::chess_game::{ChessGame, Players};
 use crate::piece::{Piece, PieceTypes};
 use crate::position::Position;
 
-#[derive(PartialEq, Eq, Clone, Copy, Hash)]
+#[derive(PartialEq, Eq, Clone, Copy)]
 #[repr(align(8))]
 pub enum Move {
     Normal {

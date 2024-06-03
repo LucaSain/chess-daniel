@@ -4,7 +4,7 @@ use crate::chess_game::{ChessGame, Players};
 use crate::move_struct::Move;
 use crate::position::Position;
 
-#[derive(PartialEq, Eq, Clone, Copy, Debug, Hash, PartialOrd, Ord)]
+#[derive(PartialEq, Eq, Clone, Copy, Debug, PartialOrd, Ord)]
 pub enum PieceTypes {
     King,
     Rook,
@@ -14,7 +14,7 @@ pub enum PieceTypes {
     Knight,
 }
 
-#[derive(Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, PartialEq, Eq)]
 pub struct Piece {
     pub piece_type: PieceTypes,
     pub owner: Players,

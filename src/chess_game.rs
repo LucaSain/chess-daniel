@@ -6,7 +6,7 @@ use crate::move_struct::Move;
 use crate::piece::{Piece, PieceTypes, Score};
 use crate::position::Position;
 
-#[derive(PartialEq, Eq, Clone, Copy, Debug, Hash)]
+#[derive(PartialEq, Eq, Clone, Copy, Debug)]
 pub enum Players {
     White = 1,
     Black = -1,
