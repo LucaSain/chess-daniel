@@ -1,3 +1,5 @@
+#![feature(str_split_whitespace_remainder)]
+
 mod chess_game;
 mod gamestate;
 mod move_struct;
@@ -196,6 +198,16 @@ fn uci_talk() {
                                             }
                                         }
                                     }
+                                }
+                            }
+                            "fen" => {
+                                // TODO: I think it's possible to also get moves
+                                // starting from this position
+                                // i.e. position fen <fen> moves <moves>
+                                if let Ok(fen_game) =
+                                    ChessGame::new(terms.remainder().unwrap_or_default())
+                                {
+                                    game = fen_game;
                                 }
                             }
                             _ => continue 'main_loop,
