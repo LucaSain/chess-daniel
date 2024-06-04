@@ -43,6 +43,7 @@ impl ChessGame {
         let mut terms = fen.split_ascii_whitespace();
 
         let mut board = [None; 64];
+        let mut past_scores = [0; 64];
         let mut white_king_pos = None;
         let mut black_king_pos = None;
 
@@ -78,6 +79,7 @@ impl ChessGame {
                     }
                     let position = Position::new(row, col).unwrap();
                     board[position.as_usize()] = Some(piece);
+                    past_scores[position.as_usize()] = piece.score(position);
                     col += 1;
                 }
                 empty_count if character.is_ascii_digit() => {
@@ -144,7 +146,7 @@ impl ChessGame {
             current_player,
             score: 0,
             state: ArrayVec::new(),
-            past_scores: [0; 64],
+            past_scores,
         };
 
         game.state.push(state);
