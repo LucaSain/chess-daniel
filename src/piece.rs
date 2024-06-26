@@ -3,6 +3,7 @@ use std::cell::OnceCell;
 use crate::chess_game::{ChessGame, Players};
 use crate::move_struct::Move;
 use crate::position::Position;
+use crate::scores;
 
 #[derive(PartialEq, Eq, Clone, Copy, Debug, PartialOrd, Ord)]
 pub enum PieceTypes {
@@ -20,29 +21,31 @@ pub struct Piece {
     pub owner: Players,
 }
 
-pub type Score = i32;
+pub type Score = i16;
 
 impl Piece {
     pub fn score(self, pos: Position) -> Score {
         // SAFETY: Position is always valid
         unsafe {
-            let piece_score = *match self.piece_type {
-                PieceTypes::Pawn => &[0, 90, 100, 115, 118, 120, 123, 130],
-                PieceTypes::Knight => &[300, 300, 330, 331, 333, 335, 335, 340],
-                PieceTypes::Bishop => &[310, 310, 315, 323, 334, 338, 339, 340],
-                PieceTypes::Rook => &[500, 500, 510, 510, 510, 510, 520, 530],
-                PieceTypes::Queen => &[900, 905, 910, 920, 920, 920, 920, 920],
-                PieceTypes::King => &[100000, 99960, 99950, 99950, 99950, 99950, 99950, 99950],
-            }
-            .get_unchecked(match self.owner {
-                Players::White => pos.row(),
-                Players::Black => 7 - pos.row(),
-            } as usize);
-            let col_score = match self.piece_type {
-                PieceTypes::King => 100,
-                _ => *[96, 97, 98, 100, 100, 98, 97, 96].get_unchecked(pos.col() as usize),
+            let piece_score_array = match self.piece_type {
+                PieceTypes::Pawn => scores::PAWN_SCORES,
+                PieceTypes::Knight => scores::KNIGHT_SCORES,
+                PieceTypes::Bishop => scores::BISHOP_SCORES,
+                PieceTypes::Rook => scores::ROOK_SCORES,
+                PieceTypes::Queen => scores::QUEEN_SCORES,
+                PieceTypes::King => scores::KING_SCORES_MIDDLE,
             };
-            piece_score * col_score * (self.owner as Score)
+
+            let row = match self.owner {
+                Players::White => 7 - pos.row(),
+                Players::Black => pos.row(),
+            };
+
+            let position = Position::new_unsafe(row, pos.col());
+
+            let piece_score = *piece_score_array.get_unchecked(position.as_usize());
+
+            piece_score * self.owner as Score
         }
     }
 

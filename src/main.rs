@@ -6,6 +6,7 @@ mod move_struct;
 mod performance_test;
 mod piece;
 mod position;
+mod scores;
 
 use arrayvec::ArrayVec;
 use chess_game::ChessGame;
@@ -138,7 +139,7 @@ fn get_best_move_in_time(game: &mut ChessGame, duration: Duration) -> Option<Mov
         last_score = Some(best_score);
 
         println!("info depth {}", depth);
-        println!("info score cp {}", average_score / 100);
+        println!("info score cp {}", average_score);
         // If mate can be forced, or there is only a single move available, stop searching
         let elapsed_time = now.elapsed();
         if elapsed_time > duration || is_only_move || best_score > Score::MAX - 1000 {
@@ -218,7 +219,7 @@ fn uci_talk() {
                 }
                 "go" => {
                     if let Some(best_move) =
-                        get_best_move_in_time(&mut game, Duration::from_millis(2500))
+                        get_best_move_in_time(&mut game, Duration::from_millis(1000))
                     {
                         println!("bestmove {}", best_move.uci_notation());
                         game.push(best_move);

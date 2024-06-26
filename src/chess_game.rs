@@ -14,7 +14,7 @@ pub enum Players {
 
 #[derive(Clone)]
 pub struct ChessGame {
-    pub score: i32,
+    pub score: Score,
     pub current_player: Players,
     pub move_stack: Vec<Move>,
     board: [Option<Piece>; 64],
