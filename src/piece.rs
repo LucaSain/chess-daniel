@@ -7,12 +7,12 @@ use crate::scores;
 
 #[derive(PartialEq, Eq, Clone, Copy, Debug, PartialOrd, Ord)]
 pub enum PieceTypes {
-    King,
-    Rook,
     Queen,
-    Pawn,
-    Bishop,
+    Rook,
     Knight,
+    Bishop,
+    Pawn,
+    King,
 }
 
 #[derive(Clone, Copy, PartialEq, Eq)]
