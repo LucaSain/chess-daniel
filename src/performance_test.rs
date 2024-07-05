@@ -7,11 +7,17 @@ pub fn perft(game: &mut ChessGame, depth: u8) -> usize {
     let mut moves = ArrayVec::new();
     game.get_moves(&mut moves, true);
 
+    let mut count = 0;
+
     if depth == 1 {
+        for _move in moves.iter() {
+            let _move = *_move;
+            game.push_depth_1(_move);
+            count += 1;
+            game.pop_depth_1(_move);
+        }
         return moves.len();
     }
-
-    let mut count = 0;
 
     for _move in moves.iter() {
         let _move = *_move;

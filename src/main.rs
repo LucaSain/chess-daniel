@@ -81,9 +81,9 @@ fn get_best_move_score_depth_1(game: &mut ChessGame, mut alpha: Score, beta: Sco
 
     for _move in &moves {
         let _move = *_move;
-        game.push(_move);
+        game.push_depth_1(_move);
         let score = -game.score * (game.current_player as Score);
-        game.pop(_move);
+        game.pop_depth_1(_move);
 
         alpha = alpha.max(score);
         if alpha >= beta {
@@ -96,7 +96,7 @@ fn get_best_move_score_depth_1(game: &mut ChessGame, mut alpha: Score, beta: Sco
 fn get_best_move_score_depth_2(game: &mut ChessGame, mut alpha: Score, beta: Score) -> Score {
     let player = game.current_player;
     let mut moves = ArrayVec::new();
-    game.get_moves(&mut moves, false);
+    game.get_moves(&mut moves, true);
 
     if moves.is_empty() {
         if !game.is_targeted(game.get_king_position(player), player) {
@@ -345,7 +345,7 @@ fn uci_talk() {
                 }
                 "go" => {
                     if let Some(best_move) =
-                        get_best_move_in_time(&mut game, Duration::from_millis(1000))
+                        get_best_move_in_time(&mut game, Duration::from_secs(10))
                     {
                         println!("bestmove {}", best_move.uci_notation());
                         game.push(best_move);
