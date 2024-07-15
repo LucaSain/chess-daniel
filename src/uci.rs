@@ -37,11 +37,11 @@ pub fn uci_talk() {
                                 if let Some(term) = terms.next() {
                                     if term == "moves" {
                                         for move_str in terms.by_ref() {
-                                            let _move =
-                                                match Move::from_uci_notation(move_str, &game) {
-                                                    Ok(_move) => _move,
-                                                    Err(_) => continue 'main_loop,
-                                                };
+                                            let Some(_move) =
+                                                Move::from_uci_notation(move_str, &game)
+                                            else {
+                                                continue 'main_loop;
+                                            };
 
                                             let mut moves = ArrayVec::new();
                                             game.get_moves(&mut moves, true);
@@ -66,10 +66,15 @@ pub fn uci_talk() {
                                 // TODO: I think it's possible to also get moves
                                 // starting from this position
                                 // i.e. position fen <fen> moves <moves>
-                                if let Ok(fen_game) =
-                                    ChessGame::new(terms.remainder().unwrap_or_default())
-                                {
-                                    game = fen_game;
+                                // if let Ok(fen_game) =
+                                match ChessGame::new(terms.remainder().unwrap_or_default()) {
+                                    Ok(fen_game) => {
+                                        game = fen_game;
+                                    }
+                                    Err(err) => {
+                                        eprintln!("{:?}", err.context("invalid FEN string"));
+                                        continue 'main_loop;
+                                    }
                                 }
                             }
                             _ => continue 'main_loop,

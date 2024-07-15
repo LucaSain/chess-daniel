@@ -1,5 +1,6 @@
 use std::cell::Cell;
 
+use anyhow::bail;
 use arrayvec::ArrayVec;
 use seq_macro::seq;
 
@@ -47,7 +48,7 @@ impl Default for ChessGame {
 }
 
 impl ChessGame {
-    pub fn new(fen: &str) -> Result<Self, &str> {
+    pub fn new(fen: &str) -> anyhow::Result<Self> {
         let mut terms = fen.split_ascii_whitespace();
 
         let mut board = [None; 64];
@@ -64,7 +65,7 @@ impl ChessGame {
         ];
 
         let Some(pieces) = terms.next() else {
-            return Err("Invalid FEN");
+            bail!("Missing board");
         };
 
         let mut row = 7;
@@ -73,14 +74,14 @@ impl ChessGame {
             match character {
                 '/' => {
                     if row == 0 {
-                        return Err("Too many rows");
+                        bail!("Too many rows");
                     }
                     col = 0;
                     row -= 1;
                 }
                 piece if piece.is_ascii_alphabetic() => {
                     if col == 8 {
-                        return Err("Too many columns");
+                        bail!("Too many columns");
                     }
                     let piece = Piece::from_char_ascii(piece)?;
                     if piece.piece_type == PieceTypes::King {
@@ -101,24 +102,24 @@ impl ChessGame {
                 empty_count if character.is_ascii_digit() => {
                     col += (empty_count as u8 - b'0') as i8;
                 }
-                _ => return Err("Unknown character met"),
+                _ => bail!("Unknown character met"),
             }
         }
 
         let Some(next_player) = terms.next() else {
-            return Err("Invalid FEN");
+            bail!("Missing player");
         };
 
         let current_player = match next_player.chars().next().unwrap() {
             'w' => Players::White,
             'b' => Players::Black,
-            _ => return Err("Invalid FEN"),
+            _ => bail!("Invalid player"),
         };
 
         let mut state = GameState::default();
 
         let Some(castling_rights) = terms.next() else {
-            return Err("Invalid FEN");
+            bail!("Missing castling rights");
         };
 
         for right in castling_rights.chars() {
@@ -127,32 +128,29 @@ impl ChessGame {
                 'Q' => state.set_white_queen_castling_true(),
                 'k' => state.set_black_king_castling_true(),
                 'q' => state.set_black_queen_castling_true(),
-                _ => continue,
+                '-' => continue,
+                _ => bail!("Invalid castling right"),
             }
         }
 
         let Some(en_passant) = terms.next() else {
-            return Err("Invalid FEN");
+            bail!("Missing en passant");
         };
 
         if en_passant != "-" {
-            let mut chars = en_passant.chars();
-            if let Some(col) = chars.next() {
-                state.set_en_passant(((col as u8) - b'a') as i8);
-                if !(0..8).contains(&state.en_passant()) {
-                    return Err("Invalid FEN");
-                }
-            } else {
-                return Err("Invalid FEN");
+            let col = en_passant.chars().nth(0).unwrap();
+            state.set_en_passant(((col as u8) - b'a') as i8);
+            if !(0..8).contains(&state.en_passant()) {
+                bail!("Invalid en passant square");
             }
         }
 
         let Some(white_king_pos) = white_king_pos else {
-            return Err("White king not found");
+            bail!("White king not found");
         };
 
         let Some(black_king_pos) = black_king_pos else {
-            return Err("Black king not found");
+            bail!("Black king not found");
         };
 
         let mut game = Self {

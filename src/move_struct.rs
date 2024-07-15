@@ -159,49 +159,49 @@ impl Move {
         }
     }
 
-    pub fn from_uci_notation(s: &str, game: &ChessGame) -> Result<Self, ()> {
+    pub fn from_uci_notation(s: &str, game: &ChessGame) -> Option<Self> {
         if s == "e1g1" && game.get_king_position(Players::White) == Position::new(0, 4).unwrap() {
-            Ok(Self::CastlingShort {
+            Some(Self::CastlingShort {
                 owner: Players::White,
             })
         } else if s == "e8g8"
             && game.get_king_position(Players::Black) == Position::new(7, 4).unwrap()
         {
-            Ok(Self::CastlingShort {
+            Some(Self::CastlingShort {
                 owner: Players::Black,
             })
         } else if s == "e1c1"
             && game.get_king_position(Players::White) == Position::new(0, 4).unwrap()
         {
-            Ok(Self::CastlingLong {
+            Some(Self::CastlingLong {
                 owner: Players::White,
             })
         } else if s == "e8c8"
             && game.get_king_position(Players::Black) == Position::new(7, 4).unwrap()
         {
-            Ok(Self::CastlingLong {
+            Some(Self::CastlingLong {
                 owner: Players::Black,
             })
         } else {
             let mut chars = s.bytes();
-            let start_col = chars.next().unwrap().wrapping_sub(b'a') as i8;
-            let start_row = chars.next().unwrap().wrapping_sub(b'1') as i8;
-            let end_col = chars.next().unwrap().wrapping_sub(b'a') as i8;
-            let end_row = chars.next().unwrap().wrapping_sub(b'1') as i8;
+            let start_col = chars.next()?.wrapping_sub(b'a') as i8;
+            let start_row = chars.next()?.wrapping_sub(b'1') as i8;
+            let end_col = chars.next()?.wrapping_sub(b'a') as i8;
+            let end_row = chars.next()?.wrapping_sub(b'1') as i8;
 
-            let start = unsafe { Position::new_unsafe(start_row, start_col) };
-            let end = unsafe { Position::new_unsafe(end_row, end_col) };
+            let start = Position::new(start_row, start_col)?;
+            let end = Position::new(end_row, end_col)?;
 
-            if s.len() == 5 {
-                let new_piece = match s.chars().nth(4).unwrap() {
+            if let Some(new_piece) = s.chars().nth(4) {
+                let new_piece = match new_piece {
                     'q' | 'Q' => PieceTypes::Queen,
                     'r' | 'R' => PieceTypes::Rook,
                     'n' | 'N' => PieceTypes::Knight,
                     'b' | 'B' => PieceTypes::Bishop,
-                    _ => return Err(()),
+                    _ => return None,
                 };
 
-                return Ok(Self::Promotion {
+                return Some(Self::Promotion {
                     owner: game.current_player,
                     start,
                     end,
@@ -216,13 +216,13 @@ impl Move {
                     && game.get_position(end).is_none()
                     && i8::abs(start.col() - end.col()) == 1
                 {
-                    Ok(Self::EnPassant {
+                    Some(Self::EnPassant {
                         owner: game.current_player,
                         start_col: start.col(),
                         end_col: end.col(),
                     })
                 } else {
-                    Ok(Self::Normal {
+                    Some(Self::Normal {
                         piece,
                         start,
                         end,
@@ -231,7 +231,7 @@ impl Move {
                 };
             }
 
-            Err(())
+            None
         }
     }
 }
