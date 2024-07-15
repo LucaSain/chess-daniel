@@ -9,8 +9,8 @@ use crate::scores;
 pub enum PieceTypes {
     Queen,
     Rook,
-    Knight,
     Bishop,
+    Knight,
     Pawn,
     King,
 }
