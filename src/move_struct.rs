@@ -206,11 +206,11 @@ impl Move {
                     start,
                     end,
                     new_piece,
-                    captured_piece: *game.get_position(end),
+                    captured_piece: game.get_position(end),
                 });
             }
 
-            if let Some(piece) = *game.get_position(start) {
+            if let Some(piece) = game.get_position(start) {
                 // This move is either en passant or normal
                 return if piece.piece_type == PieceTypes::Pawn
                     && game.get_position(end).is_none()
@@ -226,7 +226,7 @@ impl Move {
                         piece,
                         start,
                         end,
-                        captured_piece: *game.get_position(end),
+                        captured_piece: game.get_position(end),
                     })
                 };
             }

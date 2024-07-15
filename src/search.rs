@@ -59,8 +59,7 @@ fn get_best_move_score_depth_1(game: &mut ChessGame, mut alpha: Score, beta: Sco
         }
     } else if moves.len() == 1 {
         // If there is only one move available push it and don't decrease depth
-        // SAFETY: Length is 1
-        let _move = unsafe { *moves.get_unchecked(0) };
+        let _move = moves[0];
         game.push(_move);
         let score = -get_best_move_score_depth_1(game, -beta, -alpha);
         game.pop(_move);
@@ -95,8 +94,7 @@ fn get_best_move_score_depth_2(game: &mut ChessGame, mut alpha: Score, beta: Sco
         }
     } else if moves.len() == 1 {
         // If there is only one move available push it and don't decrease depth
-        // SAFETY: Length is 1
-        let _move = unsafe { *moves.get_unchecked(0) };
+        let _move = moves[0];
         game.push(_move);
         let score = -get_best_move_score_depth_2(game, -beta, -alpha);
         game.pop(_move);
@@ -153,8 +151,7 @@ fn get_best_move_score(
         }
     } else if moves.len() == 1 {
         // If there is only one move available push it and don't decrease depth
-        // SAFETY: Length is 1
-        let _move = unsafe { *moves.get_unchecked(0) };
+        let _move = moves[0];
         game.push(_move);
         let score = -get_best_move_score(game, should_stop, depth, -beta, -alpha)?;
         game.pop(_move);

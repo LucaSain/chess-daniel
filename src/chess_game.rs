@@ -157,9 +157,9 @@ impl ChessGame {
         self.state.len()
     }
 
-    pub fn get_position(&self, position: Position) -> &Option<Piece> {
+    pub fn get_position(&self, position: Position) -> Option<Piece> {
         // SAFETY: position is always valid
-        unsafe { self.board.get_unchecked(position.as_usize()) }
+        unsafe { *self.board.get_unchecked(position.as_usize()) }
     }
 
     fn set_position(&mut self, position: Position, new_place: Option<Piece>) {
@@ -181,22 +181,16 @@ impl ChessGame {
     }
 
     pub fn get_king_position(&self, player: Players) -> Position {
-        // SAFETY: Hardcoded values are valid
-        unsafe {
-            match player {
-                Players::White => *self.king_positions.get_unchecked(0),
-                Players::Black => *self.king_positions.get_unchecked(1),
-            }
+        match player {
+            Players::White => self.king_positions[0],
+            Players::Black => self.king_positions[1],
         }
     }
 
     fn set_king_position(&mut self, player: Players, position: Position) {
-        // SAFETY: Hardcoded values are valid
-        unsafe {
-            match player {
-                Players::White => *self.king_positions.get_unchecked_mut(0) = position,
-                Players::Black => *self.king_positions.get_unchecked_mut(1) = position,
-            };
+        match player {
+            Players::White => self.king_positions[0] = position,
+            Players::Black => self.king_positions[1] = position,
         }
     }
 

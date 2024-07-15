@@ -51,7 +51,7 @@ impl Piece {
                             piece: self,
                             start: pos,
                             end: new_pos,
-                            captured_piece: *place,
+                            captured_piece: place,
                         };
 
                         if let Some(piece) = place  {
@@ -183,7 +183,7 @@ impl Piece {
 
         for delta in side_deltas {
             if let Some(new_pos) = pos.add(delta) {
-                let place = *game.get_position(new_pos);
+                let place = game.get_position(new_pos);
                 if place.is_some_and(|piece| piece.owner != self.owner) {
                     if last_row == new_pos.row() {
                         for new_piece in [
@@ -241,7 +241,7 @@ impl Piece {
             (-1, -1),
         ] {
             if let Some(new_pos) = pos.add(delta) {
-                let place = *game.get_position(new_pos);
+                let place = game.get_position(new_pos);
                 if !place.is_some_and(|piece| piece.owner == game.current_player) {
                     // Kings can't move into each other
                     if i8::abs(new_pos.row() - other_king_pos.row()) <= 1
@@ -321,7 +321,7 @@ impl Piece {
             (2, -1),
         ] {
             if let Some(new_pos) = pos.add(delta) {
-                let place = *game.get_position(new_pos);
+                let place = game.get_position(new_pos);
                 if !place.is_some_and(|piece| piece.owner == game.current_player) {
                     push(Move::Normal {
                         piece: self,
