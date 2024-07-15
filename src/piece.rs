@@ -25,28 +25,20 @@ pub type Score = i16;
 
 impl Piece {
     pub fn score(self, pos: Position) -> Score {
+        let piece_score_array = &scores::SCORES[self.piece_type as usize];
+
+        let row = match self.owner {
+            Players::White => 7 - pos.row(),
+            Players::Black => pos.row(),
+        };
+
         // SAFETY: Position is always valid
-        unsafe {
-            let piece_score_array = match self.piece_type {
-                PieceTypes::Pawn => scores::PAWN_SCORES,
-                PieceTypes::Knight => scores::KNIGHT_SCORES,
-                PieceTypes::Bishop => scores::BISHOP_SCORES,
-                PieceTypes::Rook => scores::ROOK_SCORES,
-                PieceTypes::Queen => scores::QUEEN_SCORES,
-                PieceTypes::King => scores::KING_SCORES_MIDDLE,
-            };
-
-            let row = match self.owner {
-                Players::White => 7 - pos.row(),
-                Players::Black => pos.row(),
-            };
-
+        let piece_score = unsafe {
             let position = Position::new_unsafe(row, pos.col());
+            *piece_score_array.get().get_unchecked(position.as_usize())
+        };
 
-            let piece_score = *piece_score_array.get_unchecked(position.as_usize());
-
-            piece_score * self.owner as Score
-        }
+        piece_score * self.owner as Score
     }
 
     pub fn get_moves(self, mut push: impl FnMut(Move), game: &ChessGame, pos: Position) {

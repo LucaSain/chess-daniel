@@ -1,5 +1,7 @@
 // Source: https://www.chessprogramming.org/Simplified_Evaluation_Function
 
+use std::cell::Cell;
+
 pub const PAWN_SCORES: [i16; 64] = [
     100, 100, 100, 100, 100, 100, 100, 100, 150, 150, 150, 150, 150, 150, 150, 150, 110, 110, 120,
     130, 130, 120, 110, 110, 105, 105, 110, 125, 125, 110, 105, 105, 100, 100, 100, 120, 120, 100,
@@ -47,4 +49,17 @@ pub const _KING_SCORES_END: [i16; 64] = [
     20030, 20040, 20040, 20030, 19990, 19970, 19970, 19990, 20030, 20040, 20040, 20030, 19990,
     19970, 19970, 19990, 20020, 20030, 20030, 20020, 19990, 19970, 19970, 19970, 20000, 20000,
     20000, 20000, 19970, 19970, 19950, 19970, 19970, 19970, 19970, 19970, 19970, 19950,
+];
+
+/// Cells are used here in order to allow the changing of the scores
+/// depending on the game's state, e.g. for the endgame
+///
+/// WARNING: The orderd of the scores must match the order of the pieces
+pub const SCORES: [Cell<&[i16; 64]>; 6] = [
+    Cell::new(&QUEEN_SCORES),
+    Cell::new(&ROOK_SCORES),
+    Cell::new(&BISHOP_SCORES),
+    Cell::new(&KNIGHT_SCORES),
+    Cell::new(&PAWN_SCORES),
+    Cell::new(&KING_SCORES_MIDDLE),
 ];
