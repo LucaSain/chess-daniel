@@ -1,9 +1,8 @@
-use std::cell::OnceCell;
+use std::cell::{Cell, OnceCell};
 
 use crate::chess_game::{ChessGame, Players};
 use crate::move_struct::Move;
 use crate::position::Position;
-use crate::scores;
 
 #[derive(PartialEq, Eq, Clone, Copy, Debug, PartialOrd, Ord)]
 pub enum PieceTypes {
@@ -24,8 +23,8 @@ pub struct Piece {
 pub type Score = i16;
 
 impl Piece {
-    pub fn score(self, pos: Position) -> Score {
-        let piece_score_array = &scores::SCORES[self.piece_type as usize];
+    pub fn score(self, pos: Position, scores: &[Cell<&[i16; 64]>; 6]) -> Score {
+        let piece_score_array = scores[self.piece_type as usize].get();
 
         let row = match self.owner {
             Players::White => 7 - pos.row(),
@@ -35,7 +34,7 @@ impl Piece {
         // SAFETY: Position is always valid
         let piece_score = unsafe {
             let position = Position::new_unsafe(row, pos.col());
-            *piece_score_array.get().get_unchecked(position.as_usize())
+            *piece_score_array.get_unchecked(position.as_usize())
         };
 
         piece_score * self.owner as Score

@@ -79,7 +79,7 @@ pub fn uci_talk() {
                     }
                 }
                 "go" => {
-                    if let Some(best_move) = get_best_move_in_time(&mut game, time_per_move) {
+                    if let Some(best_move) = get_best_move_in_time(&game, time_per_move) {
                         println!("bestmove {}", best_move.uci_notation());
                         game.push(best_move);
                     }

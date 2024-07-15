@@ -12,7 +12,7 @@ pub fn autoplay(millis: u64) {
         game.get_moves(&mut moves, true);
         println!("{}", game.get_pgn());
         dbg!(game.clone());
-        let next_move = match get_best_move_in_time(&mut game, Duration::from_millis(millis)) {
+        let next_move = match get_best_move_in_time(&game, Duration::from_millis(millis)) {
             Some(_move) => _move,
             None => break,
         };

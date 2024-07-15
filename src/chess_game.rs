@@ -1,3 +1,5 @@
+use std::cell::Cell;
+
 use arrayvec::ArrayVec;
 use seq_macro::seq;
 
@@ -5,6 +7,7 @@ use crate::gamestate::GameState;
 use crate::move_struct::Move;
 use crate::piece::{Piece, PieceTypes, Score};
 use crate::position::Position;
+use crate::scores;
 
 #[derive(PartialEq, Eq, Clone, Copy, Debug)]
 pub enum Players {
@@ -19,6 +22,11 @@ pub struct ChessGame {
     pub move_stack: Vec<Move>,
     board: [Option<Piece>; 64],
     past_scores: [Score; 64],
+    /// Cells are used here in order to allow the changing of the scores
+    /// depending on the game's state, e.g. for the endgame
+    ///
+    /// WARNING: The order of the scores must match the order of the pieces
+    piece_scores: [Cell<&'static [i16; 64]>; 6],
     king_positions: [Position; 2],
     state: ArrayVec<GameState, 512>,
 }
@@ -46,6 +54,14 @@ impl ChessGame {
         let mut past_scores = [0; 64];
         let mut white_king_pos = None;
         let mut black_king_pos = None;
+        let piece_scores: [Cell<&[i16; 64]>; 6] = [
+            Cell::new(&scores::QUEEN_SCORES),
+            Cell::new(&scores::ROOK_SCORES),
+            Cell::new(&scores::BISHOP_SCORES),
+            Cell::new(&scores::KNIGHT_SCORES),
+            Cell::new(&scores::PAWN_SCORES),
+            Cell::new(&scores::KING_SCORES_MIDDLE),
+        ];
 
         let Some(pieces) = terms.next() else {
             return Err("Invalid FEN");
@@ -79,7 +95,7 @@ impl ChessGame {
                     }
                     let position = Position::new(row, col).unwrap();
                     board[position.as_usize()] = Some(piece);
-                    past_scores[position.as_usize()] = piece.score(position);
+                    past_scores[position.as_usize()] = piece.score(position, &piece_scores);
                     col += 1;
                 }
                 empty_count if character.is_ascii_digit() => {
@@ -147,6 +163,7 @@ impl ChessGame {
             score: 0,
             state: ArrayVec::new(),
             past_scores,
+            piece_scores,
         };
 
         game.state.push(state);
@@ -175,7 +192,9 @@ impl ChessGame {
 
         *place = new_place;
 
-        *place_score = place.map(|piece| piece.score(position)).unwrap_or(0);
+        *place_score = place
+            .map(|piece| piece.score(position, &self.piece_scores))
+            .unwrap_or(0);
 
         self.score += *place_score;
     }
