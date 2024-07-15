@@ -15,45 +15,38 @@ mod uci;
 use arrayvec::ArrayVec;
 use chess_game::ChessGame;
 
+fn get_parameter<T>(args: &mut std::env::Args, default: T) -> T
+where
+    T: std::str::FromStr + std::string::ToString,
+{
+    args.next()
+        .unwrap_or_else(|| default.to_string())
+        .parse()
+        .unwrap_or(default)
+}
+
 fn main() {
     let mut args = std::env::args();
     args.next();
+
     if let Some(arg) = args.next() {
         if arg == "bench" {
             // Generate best moves for a couple different positions
             // This is used for benchmarking and PGO optimization
-            let depth = args
-                .next()
-                .unwrap_or_else(|| "7".to_string())
-                .parse()
-                .unwrap_or(7);
-
-            let steps = args
-                .next()
-                .unwrap_or_else(|| "5".to_string())
-                .parse()
-                .unwrap_or(5);
+            let depth = get_parameter(&mut args, 7);
+            let steps = get_parameter(&mut args, 5);
 
             benchmark::run_benchmark(depth, steps);
         } else if arg == "perft" {
             // Generate perft test result
-            let depth = args
-                .next()
-                .unwrap_or_else(|| "7".to_string())
-                .parse()
-                .unwrap_or(7);
+            let depth = get_parameter(&mut args, 7);
 
             let mut game = ChessGame::default();
             let result = performance_test::perft(&mut game, depth);
             println!("Found {} leaf nodes", result);
         } else if arg == "auto" {
             // Auto play in terminal
-            let millis = args
-                .next()
-                .unwrap_or_else(|| "1000".to_string())
-                .parse()
-                .unwrap_or(1000);
-
+            let millis = get_parameter(&mut args, 1000);
             autoplay::autoplay(millis);
         }
     } else {
