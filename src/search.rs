@@ -126,18 +126,18 @@ fn get_best_move_score(
     depth: u8,
     mut alpha: Score,
     beta: Score,
-) -> Result<Score, ()> {
+) -> Option<Score> {
     if should_stop.load(atomic::Ordering::Relaxed) {
         // Halt the search early
-        return Err(());
+        return None;
     }
 
     if depth == 2 {
-        return Ok(get_best_move_score_depth_2(game, alpha, beta));
+        return Some(get_best_move_score_depth_2(game, alpha, beta));
     } else if depth == 1 {
-        return Ok(get_best_move_score_depth_1(game, alpha, beta));
+        return Some(get_best_move_score_depth_1(game, alpha, beta));
     } else if depth == 0 {
-        return Ok(game.score * (game.current_player as Score));
+        return Some(game.score * (game.current_player as Score));
     }
 
     let player = game.current_player;
@@ -146,10 +146,10 @@ fn get_best_move_score(
 
     if moves.is_empty() {
         if !game.is_targeted(game.get_king_position(player), player) {
-            return Ok(0);
+            return Some(0);
         } else {
             // The earlier the mate the worse the score for the losing player
-            return Ok(Score::MIN + 100 + game.len() as Score);
+            return Some(Score::MIN + 100 + game.len() as Score);
         }
     } else if moves.len() == 1 {
         // If there is only one move available push it and don't decrease depth
@@ -158,7 +158,7 @@ fn get_best_move_score(
         game.push(_move);
         let score = -get_best_move_score(game, should_stop, depth, -beta, -alpha)?;
         game.pop(_move);
-        return Ok(score);
+        return Some(score);
     }
 
     // We want to sort the moves best on the most likely ones to be good
@@ -185,20 +185,20 @@ fn get_best_move_score(
         }
     }
 
-    Ok(alpha)
+    Some(alpha)
 }
 
 pub fn get_best_move(
     mut game: ChessGame,
     should_stop: &AtomicBool,
     depth: u8,
-) -> Result<(Option<Move>, Score, bool), ()> {
+) -> Option<(Option<Move>, Score, bool)> {
     let mut moves = ArrayVec::new();
     game.get_moves(&mut moves, true);
 
     // If there is only one move available don't bother searching
     if moves.len() == 1 {
-        return Ok((moves.first().copied(), 0, true));
+        return Some((moves.first().copied(), 0, true));
     }
 
     let mut best_move = None;
@@ -221,7 +221,7 @@ pub fn get_best_move(
         }
     }
 
-    Ok((best_move, best_score, false))
+    Some((best_move, best_score, false))
 }
 
 pub fn get_best_move_in_time(game: &ChessGame, duration: Duration) -> Option<Move> {
@@ -239,7 +239,7 @@ pub fn get_best_move_in_time(game: &ChessGame, duration: Duration) -> Option<Mov
     });
 
     for depth in 5.. {
-        let Ok((best_move, best_score, is_only_move)) =
+        let Some((best_move, best_score, is_only_move)) =
             get_best_move(game.clone(), should_stop.as_ref(), depth)
         else {
             return found_move;
