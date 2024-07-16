@@ -8,7 +8,14 @@ use crate::gamestate::GameState;
 use crate::move_struct::Move;
 use crate::piece::{Piece, PieceTypes, Score};
 use crate::position::Position;
-use crate::scores;
+use crate::scores::{self, ENDGAME_THRESHOLD};
+
+#[derive(PartialEq, Eq, Clone, Copy, Debug)]
+pub enum GamePhase {
+    Opening,
+    // Middle,
+    Endgame,
+}
 
 #[derive(PartialEq, Eq, Clone, Copy, Debug)]
 pub enum Players {
@@ -21,6 +28,7 @@ pub struct ChessGame {
     pub score: Score,
     pub current_player: Players,
     pub move_stack: Vec<Move>,
+    pub phase: GamePhase,
     board: [Option<Piece>; 64],
     past_scores: [Score; 64],
     /// Cells are used here in order to allow the changing of the scores
@@ -162,9 +170,12 @@ impl ChessGame {
             state: ArrayVec::new(),
             past_scores,
             piece_scores,
+            phase: GamePhase::Opening,
         };
 
         game.state.push(state);
+        game.update_phase();
+
         Ok(game)
     }
 
@@ -218,7 +229,7 @@ impl ChessGame {
 
     pub fn push_history(&mut self, _move: Move) {
         self.move_stack.push(_move);
-
+        self.update_phase();
         self.push(_move);
     }
 
@@ -836,6 +847,28 @@ impl ChessGame {
                 self.set_king_position(owner, old_king);
             }
         };
+    }
+
+    fn is_endgame(&self) -> bool {
+        let mut total_piece_score: u32 = 0;
+
+        for row in 0..8 {
+            for col in 0..8 {
+                let position = Position::new(row, col).unwrap();
+                if let Some(piece) = self.get_position(position) {
+                    total_piece_score += piece.score(position, &self.piece_scores).abs() as u32;
+                }
+            }
+        }
+
+        total_piece_score < 2 * ENDGAME_THRESHOLD // because we are counting both sides
+    }
+
+    pub fn update_phase(&mut self) {
+        if self.is_endgame() {
+            self.piece_scores[PieceTypes::King as usize].set(&scores::KING_SCORES_END);
+            self.phase = GamePhase::Endgame;
+        }
     }
 
     /// `moves` will be cleared by this function to be sure it has room for all moves

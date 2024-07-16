@@ -49,7 +49,7 @@ pub fn uci_talk() {
                                                 .iter()
                                                 .any(|allowed_move| _move == *allowed_move)
                                             {
-                                                game.push(_move);
+                                                game.push_history(_move);
                                                 // Hard limit onto the number
                                                 // of possible moves in a game;
                                                 if game.len() >= 400 {
@@ -86,7 +86,7 @@ pub fn uci_talk() {
                 "go" => {
                     if let Some(best_move) = get_best_move_in_time(&game, time_per_move) {
                         println!("bestmove {}", best_move.uci_notation());
-                        game.push(best_move);
+                        game.push_history(best_move);
                     }
                 }
                 "quit" => {
