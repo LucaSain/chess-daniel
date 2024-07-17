@@ -65,6 +65,12 @@ mod tests {
     }
 
     #[test]
+    fn perft6_startpos() {
+        let mut game = ChessGame::default();
+        assert_eq!(perft(&mut game, 6), 119060324);
+    }
+
+    #[test]
     fn perft1_kiwipete() {
         let mut game =
             ChessGame::new("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq -")
@@ -94,6 +100,14 @@ mod tests {
             ChessGame::new("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq -")
                 .unwrap();
         assert_eq!(perft(&mut game, 4), 4085603);
+    }
+
+    #[test]
+    fn perft5_kiwipete() {
+        let mut game =
+            ChessGame::new("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq -")
+                .unwrap();
+        assert_eq!(perft(&mut game, 5), 193690690);
     }
 
     #[test]
@@ -130,6 +144,12 @@ mod tests {
     fn perft6_position_3() {
         let mut game = ChessGame::new("8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - ").unwrap();
         assert_eq!(perft(&mut game, 6), 11030083);
+    }
+
+    #[test]
+    fn perft7_position_3() {
+        let mut game = ChessGame::new("8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - ").unwrap();
+        assert_eq!(perft(&mut game, 7), 178633661);
     }
 
     #[test]
@@ -173,6 +193,14 @@ mod tests {
     }
 
     #[test]
+    fn perft6_position_4() {
+        let mut game =
+            ChessGame::new("r3k2r/Pppp1ppp/1b3nbN/nP6/BBP1P3/q4N2/Pp1P2PP/R2Q1RK1 w kq - 0")
+                .unwrap();
+        assert_eq!(perft(&mut game, 6), 706045033);
+    }
+
+    #[test]
     fn perft1_position_5() {
         let mut game =
             ChessGame::new("rnbq1k1r/pp1Pbppp/2p5/8/2B5/8/PPP1NnPP/RNBQK2R w KQ - 1 8").unwrap();
@@ -198,6 +226,13 @@ mod tests {
         let mut game =
             ChessGame::new("rnbq1k1r/pp1Pbppp/2p5/8/2B5/8/PPP1NnPP/RNBQK2R w KQ - 1 8").unwrap();
         assert_eq!(perft(&mut game, 4), 2103487);
+    }
+
+    #[test]
+    fn perft5_position_5() {
+        let mut game =
+            ChessGame::new("rnbq1k1r/pp1Pbppp/2p5/8/2B5/8/PPP1NnPP/RNBQK2R w KQ - 1 8").unwrap();
+        assert_eq!(perft(&mut game, 5), 89941194);
     }
 
     #[test]
@@ -237,6 +272,15 @@ mod tests {
     }
 
     #[test]
+    fn perft5_position_6() {
+        let mut game = ChessGame::new(
+            "r4rk1/1pp1qppp/p1np1n2/2b1p1B1/2B1P1b1/P1NP1N2/1PP1QPPP/R4RK1 w - - 0 10",
+        )
+        .unwrap();
+        assert_eq!(perft(&mut game, 5), 164075551);
+    }
+
+    #[test]
     fn perft_many_position5() {
         let mut game =
             ChessGame::new("rnbq1k1r/pp1Pbppp/2p5/8/2B5/8/PPP1NnPP/RNBQK2R w KQ - 1 8").unwrap();
@@ -244,5 +288,6 @@ mod tests {
         assert_eq!(perft(&mut game, 2), 1486);
         assert_eq!(perft(&mut game, 3), 62379);
         assert_eq!(perft(&mut game, 4), 2103487);
+        assert_eq!(perft(&mut game, 5), 89941194);
     }
 }

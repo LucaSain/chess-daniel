@@ -10,10 +10,12 @@ anyhow = "1.0.86"
 arrayvec = "0.7.4"
 seq-macro = "0.3.5"
 
+[profile.release]
+debug = "full"
+
 [profile.release-lto]
 # We want our engine to be as fast as possible
 inherits = "release"
 lto = true
 codegen-units = 1
 panic = "abort"
-debug = "full"
