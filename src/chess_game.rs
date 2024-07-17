@@ -1,6 +1,6 @@
 use std::cell::Cell;
 
-use anyhow::bail;
+use anyhow::{bail, Context};
 use arrayvec::ArrayVec;
 use seq_macro::seq;
 
@@ -91,7 +91,7 @@ impl ChessGame {
                     if col == 8 {
                         bail!("Too many columns");
                     }
-                    let piece = Piece::from_char_ascii(piece)?;
+                    let piece = Piece::from_char_ascii(piece).with_context(|| "Invalid piece")?;
                     if piece.piece_type == PieceTypes::King {
                         match piece.owner {
                             Players::White => {

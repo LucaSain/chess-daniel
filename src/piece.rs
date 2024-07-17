@@ -1,7 +1,5 @@
 use std::cell::{Cell, OnceCell};
 
-use anyhow::bail;
-
 use crate::chess_game::{ChessGame, Players};
 use crate::move_struct::Move;
 use crate::position::Position;
@@ -367,7 +365,7 @@ impl Piece {
         }
     }
 
-    pub fn from_char_ascii(piece: char) -> anyhow::Result<Self> {
+    pub fn from_char_ascii(piece: char) -> Option<Self> {
         let owner = if piece.is_ascii_lowercase() {
             Players::Black
         } else {
@@ -381,10 +379,10 @@ impl Piece {
             'B' => PieceTypes::Bishop,
             'N' => PieceTypes::Knight,
             'P' => PieceTypes::Pawn,
-            _ => bail!("Invalid piece"),
+            _ => return None,
         };
 
-        Ok(Self { piece_type, owner })
+        Some(Self { piece_type, owner })
     }
 }
 
