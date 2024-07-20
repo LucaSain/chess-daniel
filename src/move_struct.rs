@@ -56,8 +56,8 @@ impl Move {
                 s.push(match new_piece {
                     PieceTypes::Queen => 'q',
                     PieceTypes::Rook => 'r',
-                    PieceTypes::Bishop => 'k',
-                    PieceTypes::Knight => 'b',
+                    PieceTypes::Bishop => 'b',
+                    PieceTypes::Knight => 'n',
                     _ => unreachable!(),
                 });
             }

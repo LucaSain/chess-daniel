@@ -8,8 +8,9 @@ pub fn perft(game: &mut ChessGame, depth: u8) -> usize {
     game.get_moves(&mut moves, true);
 
     let mut count = 0;
-
-    if depth == 1 {
+    if depth == 0 {
+        return 1;
+    } else if depth == 1 {
         for _move in moves.iter() {
             let _move = *_move;
             game.push_depth_1(_move);

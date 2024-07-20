@@ -2,8 +2,13 @@
 /// This struct should always contain a valid position.
 /// That is, values for row and col are always in 0..8
 #[repr(align(2))]
-pub struct Position(i8, i8); // rand, coloana : row, col
+pub struct Position(i8, i8);
 impl Position {
+    pub const WHITE_QUEEN_ROOK: Self = Self(0, 0);
+    pub const WHITE_KING_ROOK: Self = Self(0, 7);
+    pub const BLACK_QUEEN_ROOK: Self = Self(7, 0);
+    pub const BLACK_KING_ROOK: Self = Self(7, 7);
+
     pub fn new(row: i8, col: i8) -> Option<Self> {
         if (0..8).contains(&row) && (0..8).contains(&col) {
             Some(Self(row, col))

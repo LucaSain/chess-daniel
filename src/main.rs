@@ -14,6 +14,7 @@ mod uci;
 
 use arrayvec::ArrayVec;
 use chess_game::ChessGame;
+use move_struct::Move;
 
 fn get_parameter<T>(args: &mut std::env::Args, default: T) -> T
 where
@@ -40,10 +41,29 @@ fn main() {
         } else if arg == "perft" {
             // Generate perft test result
             let depth = get_parameter(&mut args, 7);
+            let fen = args.next().unwrap_or_default();
+            let mut game = ChessGame::new(&fen).unwrap_or_default();
+            while let Some(move_str) = &args.next() {
+                let _move = Move::from_uci_notation(move_str, &game).unwrap();
+                game.push(_move);
+                dbg!(game.clone());
+            }
 
-            let mut game = ChessGame::default();
-            let result = performance_test::perft(&mut game, depth);
-            println!("Found {} leaf nodes", result);
+            let mut moves = ArrayVec::new();
+            game.get_moves(&mut moves, true);
+
+            moves.sort_by_cached_key(|_move| _move.uci_notation());
+
+            let mut sum = 0;
+            for _move in moves {
+                game.push(_move);
+                let count = performance_test::perft(&mut game, depth - 1);
+                game.pop(_move);
+                sum += count;
+                println!("{}: {}", _move.uci_notation(), count);
+            }
+            println!("");
+            println!("{}", sum);
         } else if arg == "auto" {
             // Auto play in terminal
             let millis = get_parameter(&mut args, 1000);

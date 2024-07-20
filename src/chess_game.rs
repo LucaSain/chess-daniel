@@ -519,38 +519,31 @@ impl ChessGame {
                         }
                     }
                 } else if piece.piece_type == PieceTypes::Rook {
-                    if start.col() == 0 {
-                        match self.current_player {
-                            Players::White => state.set_white_queen_castling_false(),
-                            Players::Black => state.set_black_queen_castling_false(),
-                        }
-                    } else if start.col() == 7 {
-                        match self.current_player {
-                            Players::White => state.set_white_king_castling_false(),
-                            Players::Black => state.set_black_king_castling_false(),
-                        }
+                    match start {
+                        Position::WHITE_QUEEN_ROOK => state.set_white_queen_castling_false(),
+                        Position::WHITE_KING_ROOK => state.set_white_king_castling_false(),
+                        Position::BLACK_QUEEN_ROOK => state.set_black_queen_castling_false(),
+                        Position::BLACK_KING_ROOK => state.set_black_king_castling_false(),
+                        _ => (),
                     }
                 }
 
-                if captured_piece.is_some_and(|piece| piece.piece_type == PieceTypes::Rook) {
-                    // SAFETY: Hardcoded positions are valid
-                    let (pos1, pos2, pos3, pos4) = unsafe {
-                        (
-                            Position::new_unsafe(0, 0),
-                            Position::new_unsafe(0, 7),
-                            Position::new_unsafe(7, 0),
-                            Position::new_unsafe(7, 7),
-                        )
-                    };
-
-                    if end == pos1 {
-                        state.set_white_queen_castling_false();
-                    } else if end == pos2 {
-                        state.set_white_king_castling_false();
-                    } else if end == pos3 {
-                        state.set_black_queen_castling_false();
-                    } else if end == pos4 {
-                        state.set_black_king_castling_false();
+                if captured_piece.is_some_and(|piece| {
+                    piece.piece_type == PieceTypes::Rook && piece.owner == Players::White
+                }) {
+                    match end {
+                        Position::WHITE_QUEEN_ROOK => state.set_white_queen_castling_false(),
+                        Position::WHITE_KING_ROOK => state.set_white_king_castling_false(),
+                        _ => (),
+                    }
+                }
+                if captured_piece.is_some_and(|piece| {
+                    piece.piece_type == PieceTypes::Rook && piece.owner == Players::Black
+                }) {
+                    match end {
+                        Position::BLACK_QUEEN_ROOK => state.set_black_queen_castling_false(),
+                        Position::BLACK_KING_ROOK => state.set_black_king_castling_false(),
+                        _ => (),
                     }
                 }
 
@@ -563,7 +556,7 @@ impl ChessGame {
                 start,
                 end,
                 new_piece,
-                ..
+                captured_piece,
             } => {
                 self.set_position(start, None);
                 self.set_position(
@@ -573,6 +566,25 @@ impl ChessGame {
                         piece_type: new_piece,
                     }),
                 );
+
+                if captured_piece.is_some_and(|piece| {
+                    piece.piece_type == PieceTypes::Rook && piece.owner == Players::White
+                }) {
+                    match end {
+                        Position::WHITE_QUEEN_ROOK => state.set_white_queen_castling_false(),
+                        Position::WHITE_KING_ROOK => state.set_white_king_castling_false(),
+                        _ => (),
+                    }
+                }
+                if captured_piece.is_some_and(|piece| {
+                    piece.piece_type == PieceTypes::Rook && piece.owner == Players::Black
+                }) {
+                    match end {
+                        Position::BLACK_QUEEN_ROOK => state.set_black_queen_castling_false(),
+                        Position::BLACK_KING_ROOK => state.set_black_king_castling_false(),
+                        _ => (),
+                    }
+                }
             }
             Move::EnPassant {
                 owner,
@@ -944,6 +956,26 @@ impl ChessGame {
     /// since I already verify that moves don't put kings near each other and a king blocking
     /// a castling move is so unlikely I don't want to waste time on it.
     pub fn is_targeted(&self, position: Position, player: Players) -> bool {
+        // Verifiy for kings
+        for delta in [
+            (1, 0),
+            (0, 1),
+            (-1, 0),
+            (0, -1),
+            (1, 1),
+            (-1, 1),
+            (1, -1),
+            (-1, -1),
+        ] {
+            if let Some(new_pos) = position.add(delta) {
+                if self.get_position(new_pos).is_some_and(|piece| {
+                    piece.owner != player && piece.piece_type == PieceTypes::King
+                }) {
+                    return true;
+                }
+            }
+        }
+
         // Verify for knights
         for delta in [
             (1, 2),
