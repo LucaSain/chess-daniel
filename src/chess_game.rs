@@ -262,46 +262,40 @@ impl ChessGame {
                 start_col,
                 end_col,
             } => {
-                // SAFETY: Theses are hardcoded valid positions
-                unsafe {
-                    let (old_pawn, new_pawn, taken_pawn) = match owner {
-                        Players::White => (
-                            Position::new_unsafe(4, start_col),
-                            Position::new_unsafe(5, end_col),
-                            Position::new_unsafe(4, end_col),
-                        ),
-                        Players::Black => (
-                            Position::new_unsafe(3, start_col),
-                            Position::new_unsafe(2, end_col),
-                            Position::new_unsafe(3, end_col),
-                        ),
-                    };
+                let (old_pawn, new_pawn, taken_pawn) = match owner {
+                    Players::White => (
+                        Position::new(4, start_col).unwrap(),
+                        Position::new(5, end_col).unwrap(),
+                        Position::new(4, end_col).unwrap(),
+                    ),
+                    Players::Black => (
+                        Position::new(3, start_col).unwrap(),
+                        Position::new(2, end_col).unwrap(),
+                        Position::new(3, end_col).unwrap(),
+                    ),
+                };
 
-                    self.set_position(taken_pawn, None);
-                    self.set_position(old_pawn, None);
-                    self.set_position(
-                        new_pawn,
-                        Some(Piece {
-                            piece_type: PieceTypes::Pawn,
-                            owner,
-                        }),
-                    );
-                }
+                self.set_position(taken_pawn, None);
+                self.set_position(old_pawn, None);
+                self.set_position(
+                    new_pawn,
+                    Some(Piece {
+                        piece_type: PieceTypes::Pawn,
+                        owner,
+                    }),
+                );
             }
             Move::CastlingLong { owner } => {
                 let row = match owner {
                     Players::White => 0,
                     Players::Black => 7,
                 };
-                // SAFETY: Theses are hardcoded valid positions
-                let (old_king, new_king, old_rook, new_rook) = unsafe {
-                    (
-                        Position::new_unsafe(row, 4),
-                        Position::new_unsafe(row, 2),
-                        Position::new_unsafe(row, 0),
-                        Position::new_unsafe(row, 3),
-                    )
-                };
+                let (old_king, new_king, old_rook, new_rook) = (
+                    Position::new(row, 4).unwrap(),
+                    Position::new(row, 2).unwrap(),
+                    Position::new(row, 0).unwrap(),
+                    Position::new(row, 3).unwrap(),
+                );
 
                 self.set_position(old_rook, None);
                 self.set_position(old_king, None);
@@ -326,15 +320,12 @@ impl ChessGame {
                     Players::White => 0,
                     Players::Black => 7,
                 };
-                // SAFETY: Theses are hardcoded valid positions
-                let (old_king, new_king, old_rook, new_rook) = unsafe {
-                    (
-                        Position::new_unsafe(row, 4),
-                        Position::new_unsafe(row, 6),
-                        Position::new_unsafe(row, 7),
-                        Position::new_unsafe(row, 5),
-                    )
-                };
+                let (old_king, new_king, old_rook, new_rook) = (
+                    Position::new(row, 4).unwrap(),
+                    Position::new(row, 6).unwrap(),
+                    Position::new(row, 7).unwrap(),
+                    Position::new(row, 5).unwrap(),
+                );
 
                 self.set_position(old_rook, None);
                 self.set_position(old_king, None);
@@ -392,52 +383,46 @@ impl ChessGame {
                 start_col,
                 end_col,
             } => {
-                // SAFETY: Theses are hardcoded valid positions
-                unsafe {
-                    let (old_pawn, new_pawn, taken_pawn) = match owner {
-                        Players::White => (
-                            Position::new_unsafe(4, start_col),
-                            Position::new_unsafe(5, end_col),
-                            Position::new_unsafe(4, end_col),
-                        ),
-                        Players::Black => (
-                            Position::new_unsafe(3, start_col),
-                            Position::new_unsafe(2, end_col),
-                            Position::new_unsafe(3, end_col),
-                        ),
-                    };
+                let (old_pawn, new_pawn, taken_pawn) = match owner {
+                    Players::White => (
+                        Position::new(4, start_col).unwrap(),
+                        Position::new(5, end_col).unwrap(),
+                        Position::new(4, end_col).unwrap(),
+                    ),
+                    Players::Black => (
+                        Position::new(3, start_col).unwrap(),
+                        Position::new(2, end_col).unwrap(),
+                        Position::new(3, end_col).unwrap(),
+                    ),
+                };
 
-                    self.set_position(new_pawn, None);
-                    self.set_position(
-                        taken_pawn,
-                        Some(Piece {
-                            piece_type: PieceTypes::Pawn,
-                            owner: owner.the_other(),
-                        }),
-                    );
-                    self.set_position(
-                        old_pawn,
-                        Some(Piece {
-                            piece_type: PieceTypes::Pawn,
-                            owner,
-                        }),
-                    );
-                }
+                self.set_position(new_pawn, None);
+                self.set_position(
+                    taken_pawn,
+                    Some(Piece {
+                        piece_type: PieceTypes::Pawn,
+                        owner: owner.the_other(),
+                    }),
+                );
+                self.set_position(
+                    old_pawn,
+                    Some(Piece {
+                        piece_type: PieceTypes::Pawn,
+                        owner,
+                    }),
+                );
             }
             Move::CastlingLong { owner } => {
                 let row = match owner {
                     Players::White => 0,
                     Players::Black => 7,
                 };
-                // SAFETY: Theses are hardcoded valid positions
-                let (old_king, new_king, old_rook, new_rook) = unsafe {
-                    (
-                        Position::new_unsafe(row, 4),
-                        Position::new_unsafe(row, 2),
-                        Position::new_unsafe(row, 0),
-                        Position::new_unsafe(row, 3),
-                    )
-                };
+                let (old_king, new_king, old_rook, new_rook) = (
+                    Position::new(row, 4).unwrap(),
+                    Position::new(row, 2).unwrap(),
+                    Position::new(row, 0).unwrap(),
+                    Position::new(row, 3).unwrap(),
+                );
 
                 self.set_position(new_rook, None);
                 self.set_position(new_king, None);
@@ -462,15 +447,12 @@ impl ChessGame {
                     Players::White => 0,
                     Players::Black => 7,
                 };
-                // SAFETY: Theses are hardcoded valid positions
-                let (old_king, new_king, old_rook, new_rook) = unsafe {
-                    (
-                        Position::new_unsafe(row, 4),
-                        Position::new_unsafe(row, 6),
-                        Position::new_unsafe(row, 7),
-                        Position::new_unsafe(row, 5),
-                    )
-                };
+                let (old_king, new_king, old_rook, new_rook) = (
+                    Position::new(row, 4).unwrap(),
+                    Position::new(row, 6).unwrap(),
+                    Position::new(row, 7).unwrap(),
+                    Position::new(row, 5).unwrap(),
+                );
 
                 self.set_position(new_rook, None);
                 self.set_position(new_king, None);
@@ -591,45 +573,39 @@ impl ChessGame {
                 start_col,
                 end_col,
             } => {
-                // SAFETY: Theses are hardcoded valid positions
-                unsafe {
-                    let (old_pawn, new_pawn, taken_pawn) = match owner {
-                        Players::White => (
-                            Position::new_unsafe(4, start_col),
-                            Position::new_unsafe(5, end_col),
-                            Position::new_unsafe(4, end_col),
-                        ),
-                        Players::Black => (
-                            Position::new_unsafe(3, start_col),
-                            Position::new_unsafe(2, end_col),
-                            Position::new_unsafe(3, end_col),
-                        ),
-                    };
-                    self.set_position(taken_pawn, None);
-                    self.set_position(old_pawn, None);
-                    self.set_position(
-                        new_pawn,
-                        Some(Piece {
-                            piece_type: PieceTypes::Pawn,
-                            owner,
-                        }),
-                    );
-                }
+                let (old_pawn, new_pawn, taken_pawn) = match owner {
+                    Players::White => (
+                        Position::new(4, start_col).unwrap(),
+                        Position::new(5, end_col).unwrap(),
+                        Position::new(4, end_col).unwrap(),
+                    ),
+                    Players::Black => (
+                        Position::new(3, start_col).unwrap(),
+                        Position::new(2, end_col).unwrap(),
+                        Position::new(3, end_col).unwrap(),
+                    ),
+                };
+                self.set_position(taken_pawn, None);
+                self.set_position(old_pawn, None);
+                self.set_position(
+                    new_pawn,
+                    Some(Piece {
+                        piece_type: PieceTypes::Pawn,
+                        owner,
+                    }),
+                );
             }
             Move::CastlingLong { owner } => {
                 let row = match owner {
                     Players::White => 0,
                     Players::Black => 7,
                 };
-                // SAFETY: Theses are hardcoded valid positions
-                let (old_king, new_king, old_rook, new_rook) = unsafe {
-                    (
-                        Position::new_unsafe(row, 4),
-                        Position::new_unsafe(row, 2),
-                        Position::new_unsafe(row, 0),
-                        Position::new_unsafe(row, 3),
-                    )
-                };
+                let (old_king, new_king, old_rook, new_rook) = (
+                    Position::new(row, 4).unwrap(),
+                    Position::new(row, 2).unwrap(),
+                    Position::new(row, 0).unwrap(),
+                    Position::new(row, 3).unwrap(),
+                );
 
                 self.set_position(old_rook, None);
                 self.set_position(old_king, None);
@@ -665,15 +641,12 @@ impl ChessGame {
                     Players::White => 0,
                     Players::Black => 7,
                 };
-                // SAFETY: Theses are hardcoded valid positions
-                let (old_king, new_king, old_rook, new_rook) = unsafe {
-                    (
-                        Position::new_unsafe(row, 4),
-                        Position::new_unsafe(row, 6),
-                        Position::new_unsafe(row, 7),
-                        Position::new_unsafe(row, 5),
-                    )
-                };
+                let (old_king, new_king, old_rook, new_rook) = (
+                    Position::new(row, 4).unwrap(),
+                    Position::new(row, 6).unwrap(),
+                    Position::new(row, 7).unwrap(),
+                    Position::new(row, 5).unwrap(),
+                );
 
                 self.set_position(old_rook, None);
                 self.set_position(old_king, None);
@@ -756,52 +729,46 @@ impl ChessGame {
                 start_col,
                 end_col,
             } => {
-                // SAFETY: Theses are hardcoded valid positions
-                unsafe {
-                    let (old_pawn, new_pawn, taken_pawn) = match owner {
-                        Players::White => (
-                            Position::new_unsafe(4, start_col),
-                            Position::new_unsafe(5, end_col),
-                            Position::new_unsafe(4, end_col),
-                        ),
-                        Players::Black => (
-                            Position::new_unsafe(3, start_col),
-                            Position::new_unsafe(2, end_col),
-                            Position::new_unsafe(3, end_col),
-                        ),
-                    };
+                let (old_pawn, new_pawn, taken_pawn) = match owner {
+                    Players::White => (
+                        Position::new(4, start_col).unwrap(),
+                        Position::new(5, end_col).unwrap(),
+                        Position::new(4, end_col).unwrap(),
+                    ),
+                    Players::Black => (
+                        Position::new(3, start_col).unwrap(),
+                        Position::new(2, end_col).unwrap(),
+                        Position::new(3, end_col).unwrap(),
+                    ),
+                };
 
-                    self.set_position(new_pawn, None);
-                    self.set_position(
-                        taken_pawn,
-                        Some(Piece {
-                            piece_type: PieceTypes::Pawn,
-                            owner: owner.the_other(),
-                        }),
-                    );
-                    self.set_position(
-                        old_pawn,
-                        Some(Piece {
-                            piece_type: PieceTypes::Pawn,
-                            owner,
-                        }),
-                    );
-                }
+                self.set_position(new_pawn, None);
+                self.set_position(
+                    taken_pawn,
+                    Some(Piece {
+                        piece_type: PieceTypes::Pawn,
+                        owner: owner.the_other(),
+                    }),
+                );
+                self.set_position(
+                    old_pawn,
+                    Some(Piece {
+                        piece_type: PieceTypes::Pawn,
+                        owner,
+                    }),
+                );
             }
             Move::CastlingLong { owner } => {
                 let row = match owner {
                     Players::White => 0,
                     Players::Black => 7,
                 };
-                // SAFETY: Theses are hardcoded valid positions
-                let (old_king, new_king, old_rook, new_rook) = unsafe {
-                    (
-                        Position::new_unsafe(row, 4),
-                        Position::new_unsafe(row, 2),
-                        Position::new_unsafe(row, 0),
-                        Position::new_unsafe(row, 3),
-                    )
-                };
+                let (old_king, new_king, old_rook, new_rook) = (
+                    Position::new(row, 4).unwrap(),
+                    Position::new(row, 2).unwrap(),
+                    Position::new(row, 0).unwrap(),
+                    Position::new(row, 3).unwrap(),
+                );
 
                 self.set_position(new_rook, None);
                 self.set_position(new_king, None);
@@ -828,15 +795,12 @@ impl ChessGame {
                     Players::White => 0,
                     Players::Black => 7,
                 };
-                // SAFETY: Theses are hardcoded valid positions
-                let (old_king, new_king, old_rook, new_rook) = unsafe {
-                    (
-                        Position::new_unsafe(row, 4),
-                        Position::new_unsafe(row, 6),
-                        Position::new_unsafe(row, 7),
-                        Position::new_unsafe(row, 5),
-                    )
-                };
+                let (old_king, new_king, old_rook, new_rook) = (
+                    Position::new(row, 4).unwrap(),
+                    Position::new(row, 6).unwrap(),
+                    Position::new(row, 7).unwrap(),
+                    Position::new(row, 5).unwrap(),
+                );
 
                 self.set_position(new_rook, None);
                 self.set_position(new_king, None);
@@ -904,9 +868,7 @@ impl ChessGame {
 
         seq!(row in 0..8 {
             seq!(col in 0..8 {
-                // SAFETY: Theses are hardcoded valid positions,
-                // and moves is empty at the beginning
-                let pos = unsafe { Position::new_unsafe(row, col) };
+                let pos = Position::new(row, col).unwrap();
                 if let Some(piece) = self.get_position(pos) {
                     if piece.owner == self.current_player {
                         piece.get_moves(&mut push, self, pos);
