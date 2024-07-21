@@ -268,12 +268,9 @@ impl Piece {
         };
         // We may need this value 0, 1, or 2 times so we lazy-initialize it.
         let is_king_targeted = OnceCell::new();
-        let king = Position::new(row, 4).unwrap();
+        let king = Position::new_assert(row, 4);
         if king_side_castling {
-            let (pos1, pos2) = (
-                Position::new(row, 5).unwrap(),
-                Position::new(row, 6).unwrap(),
-            );
+            let (pos1, pos2) = (Position::new_assert(row, 5), Position::new_assert(row, 6));
             if game.get_position(pos1).is_none()
                 && game.get_position(pos2).is_none()
                 && !*is_king_targeted.get_or_init(|| game.is_targeted(king, game.current_player))
@@ -287,9 +284,9 @@ impl Piece {
         }
         if queen_side_castling {
             let (pos1, pos2, pos3) = (
-                Position::new(row, 1).unwrap(),
-                Position::new(row, 2).unwrap(),
-                Position::new(row, 3).unwrap(),
+                Position::new_assert(row, 1),
+                Position::new_assert(row, 2),
+                Position::new_assert(row, 3),
             );
 
             if game.get_position(pos1).is_none()

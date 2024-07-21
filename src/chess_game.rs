@@ -94,15 +94,11 @@ impl ChessGame {
                     let piece = Piece::from_char_ascii(piece).with_context(|| "Invalid piece")?;
                     if piece.piece_type == PieceTypes::King {
                         match piece.owner {
-                            Players::White => {
-                                white_king_pos = Some(Position::new(row, col).unwrap())
-                            }
-                            Players::Black => {
-                                black_king_pos = Some(Position::new(row, col).unwrap())
-                            }
+                            Players::White => white_king_pos = Some(Position::new_assert(row, col)),
+                            Players::Black => black_king_pos = Some(Position::new_assert(row, col)),
                         }
                     }
-                    let position = Position::new(row, col).unwrap();
+                    let position = Position::new_assert(row, col);
                     board[position.as_usize()] = Some(piece);
                     past_scores[position.as_usize()] = piece.score(position, &piece_scores);
                     col += 1;
@@ -264,14 +260,14 @@ impl ChessGame {
             } => {
                 let (old_pawn, new_pawn, taken_pawn) = match owner {
                     Players::White => (
-                        Position::new(4, start_col).unwrap(),
-                        Position::new(5, end_col).unwrap(),
-                        Position::new(4, end_col).unwrap(),
+                        Position::new_assert(4, start_col),
+                        Position::new_assert(5, end_col),
+                        Position::new_assert(4, end_col),
                     ),
                     Players::Black => (
-                        Position::new(3, start_col).unwrap(),
-                        Position::new(2, end_col).unwrap(),
-                        Position::new(3, end_col).unwrap(),
+                        Position::new_assert(3, start_col),
+                        Position::new_assert(2, end_col),
+                        Position::new_assert(3, end_col),
                     ),
                 };
 
@@ -291,10 +287,10 @@ impl ChessGame {
                     Players::Black => 7,
                 };
                 let (old_king, new_king, old_rook, new_rook) = (
-                    Position::new(row, 4).unwrap(),
-                    Position::new(row, 2).unwrap(),
-                    Position::new(row, 0).unwrap(),
-                    Position::new(row, 3).unwrap(),
+                    Position::new_assert(row, 4),
+                    Position::new_assert(row, 2),
+                    Position::new_assert(row, 0),
+                    Position::new_assert(row, 3),
                 );
 
                 self.set_position(old_rook, None);
@@ -321,10 +317,10 @@ impl ChessGame {
                     Players::Black => 7,
                 };
                 let (old_king, new_king, old_rook, new_rook) = (
-                    Position::new(row, 4).unwrap(),
-                    Position::new(row, 6).unwrap(),
-                    Position::new(row, 7).unwrap(),
-                    Position::new(row, 5).unwrap(),
+                    Position::new_assert(row, 4),
+                    Position::new_assert(row, 6),
+                    Position::new_assert(row, 7),
+                    Position::new_assert(row, 5),
                 );
 
                 self.set_position(old_rook, None);
@@ -385,14 +381,14 @@ impl ChessGame {
             } => {
                 let (old_pawn, new_pawn, taken_pawn) = match owner {
                     Players::White => (
-                        Position::new(4, start_col).unwrap(),
-                        Position::new(5, end_col).unwrap(),
-                        Position::new(4, end_col).unwrap(),
+                        Position::new_assert(4, start_col),
+                        Position::new_assert(5, end_col),
+                        Position::new_assert(4, end_col),
                     ),
                     Players::Black => (
-                        Position::new(3, start_col).unwrap(),
-                        Position::new(2, end_col).unwrap(),
-                        Position::new(3, end_col).unwrap(),
+                        Position::new_assert(3, start_col),
+                        Position::new_assert(2, end_col),
+                        Position::new_assert(3, end_col),
                     ),
                 };
 
@@ -418,10 +414,10 @@ impl ChessGame {
                     Players::Black => 7,
                 };
                 let (old_king, new_king, old_rook, new_rook) = (
-                    Position::new(row, 4).unwrap(),
-                    Position::new(row, 2).unwrap(),
-                    Position::new(row, 0).unwrap(),
-                    Position::new(row, 3).unwrap(),
+                    Position::new_assert(row, 4),
+                    Position::new_assert(row, 2),
+                    Position::new_assert(row, 0),
+                    Position::new_assert(row, 3),
                 );
 
                 self.set_position(new_rook, None);
@@ -448,10 +444,10 @@ impl ChessGame {
                     Players::Black => 7,
                 };
                 let (old_king, new_king, old_rook, new_rook) = (
-                    Position::new(row, 4).unwrap(),
-                    Position::new(row, 6).unwrap(),
-                    Position::new(row, 7).unwrap(),
-                    Position::new(row, 5).unwrap(),
+                    Position::new_assert(row, 4),
+                    Position::new_assert(row, 6),
+                    Position::new_assert(row, 7),
+                    Position::new_assert(row, 5),
                 );
 
                 self.set_position(new_rook, None);
@@ -575,14 +571,14 @@ impl ChessGame {
             } => {
                 let (old_pawn, new_pawn, taken_pawn) = match owner {
                     Players::White => (
-                        Position::new(4, start_col).unwrap(),
-                        Position::new(5, end_col).unwrap(),
-                        Position::new(4, end_col).unwrap(),
+                        Position::new_assert(4, start_col),
+                        Position::new_assert(5, end_col),
+                        Position::new_assert(4, end_col),
                     ),
                     Players::Black => (
-                        Position::new(3, start_col).unwrap(),
-                        Position::new(2, end_col).unwrap(),
-                        Position::new(3, end_col).unwrap(),
+                        Position::new_assert(3, start_col),
+                        Position::new_assert(2, end_col),
+                        Position::new_assert(3, end_col),
                     ),
                 };
                 self.set_position(taken_pawn, None);
@@ -601,10 +597,10 @@ impl ChessGame {
                     Players::Black => 7,
                 };
                 let (old_king, new_king, old_rook, new_rook) = (
-                    Position::new(row, 4).unwrap(),
-                    Position::new(row, 2).unwrap(),
-                    Position::new(row, 0).unwrap(),
-                    Position::new(row, 3).unwrap(),
+                    Position::new_assert(row, 4),
+                    Position::new_assert(row, 2),
+                    Position::new_assert(row, 0),
+                    Position::new_assert(row, 3),
                 );
 
                 self.set_position(old_rook, None);
@@ -642,10 +638,10 @@ impl ChessGame {
                     Players::Black => 7,
                 };
                 let (old_king, new_king, old_rook, new_rook) = (
-                    Position::new(row, 4).unwrap(),
-                    Position::new(row, 6).unwrap(),
-                    Position::new(row, 7).unwrap(),
-                    Position::new(row, 5).unwrap(),
+                    Position::new_assert(row, 4),
+                    Position::new_assert(row, 6),
+                    Position::new_assert(row, 7),
+                    Position::new_assert(row, 5),
                 );
 
                 self.set_position(old_rook, None);
@@ -731,14 +727,14 @@ impl ChessGame {
             } => {
                 let (old_pawn, new_pawn, taken_pawn) = match owner {
                     Players::White => (
-                        Position::new(4, start_col).unwrap(),
-                        Position::new(5, end_col).unwrap(),
-                        Position::new(4, end_col).unwrap(),
+                        Position::new_assert(4, start_col),
+                        Position::new_assert(5, end_col),
+                        Position::new_assert(4, end_col),
                     ),
                     Players::Black => (
-                        Position::new(3, start_col).unwrap(),
-                        Position::new(2, end_col).unwrap(),
-                        Position::new(3, end_col).unwrap(),
+                        Position::new_assert(3, start_col),
+                        Position::new_assert(2, end_col),
+                        Position::new_assert(3, end_col),
                     ),
                 };
 
@@ -764,10 +760,10 @@ impl ChessGame {
                     Players::Black => 7,
                 };
                 let (old_king, new_king, old_rook, new_rook) = (
-                    Position::new(row, 4).unwrap(),
-                    Position::new(row, 2).unwrap(),
-                    Position::new(row, 0).unwrap(),
-                    Position::new(row, 3).unwrap(),
+                    Position::new_assert(row, 4),
+                    Position::new_assert(row, 2),
+                    Position::new_assert(row, 0),
+                    Position::new_assert(row, 3),
                 );
 
                 self.set_position(new_rook, None);
@@ -796,10 +792,10 @@ impl ChessGame {
                     Players::Black => 7,
                 };
                 let (old_king, new_king, old_rook, new_rook) = (
-                    Position::new(row, 4).unwrap(),
-                    Position::new(row, 6).unwrap(),
-                    Position::new(row, 7).unwrap(),
-                    Position::new(row, 5).unwrap(),
+                    Position::new_assert(row, 4),
+                    Position::new_assert(row, 6),
+                    Position::new_assert(row, 7),
+                    Position::new_assert(row, 5),
                 );
 
                 self.set_position(new_rook, None);
@@ -830,7 +826,7 @@ impl ChessGame {
 
         for row in 0..8 {
             for col in 0..8 {
-                let position = Position::new(row, col).unwrap();
+                let position = Position::new_assert(row, col);
                 if let Some(piece) = self.get_position(position) {
                     total_piece_score += piece.score(position, &self.piece_scores).abs() as u32;
                 }
@@ -868,7 +864,7 @@ impl ChessGame {
 
         seq!(row in 0..8 {
             seq!(col in 0..8 {
-                let pos = Position::new(row, col).unwrap();
+                let pos = Position::new_assert(row, col);
                 if let Some(piece) = self.get_position(pos) {
                     if piece.owner == self.current_player {
                         piece.get_moves(&mut push, self, pos);
@@ -1064,7 +1060,7 @@ impl std::fmt::Debug for ChessGame {
         for i in (0..8).rev() {
             write!(f, "{} ", i + 1)?;
             for j in 0..8 {
-                let position = Position::new(i, j).unwrap();
+                let position = Position::new_assert(i, j);
                 write!(
                     f,
                     "|{}",

@@ -160,24 +160,24 @@ impl Move {
     }
 
     pub fn from_uci_notation(s: &str, game: &ChessGame) -> Option<Self> {
-        if s == "e1g1" && game.get_king_position(Players::White) == Position::new(0, 4).unwrap() {
+        if s == "e1g1" && game.get_king_position(Players::White) == Position::new_assert(0, 4) {
             Some(Self::CastlingShort {
                 owner: Players::White,
             })
         } else if s == "e8g8"
-            && game.get_king_position(Players::Black) == Position::new(7, 4).unwrap()
+            && game.get_king_position(Players::Black) == Position::new_assert(7, 4)
         {
             Some(Self::CastlingShort {
                 owner: Players::Black,
             })
         } else if s == "e1c1"
-            && game.get_king_position(Players::White) == Position::new(0, 4).unwrap()
+            && game.get_king_position(Players::White) == Position::new_assert(0, 4)
         {
             Some(Self::CastlingLong {
                 owner: Players::White,
             })
         } else if s == "e8c8"
-            && game.get_king_position(Players::Black) == Position::new(7, 4).unwrap()
+            && game.get_king_position(Players::Black) == Position::new_assert(7, 4)
         {
             Some(Self::CastlingLong {
                 owner: Players::Black,
