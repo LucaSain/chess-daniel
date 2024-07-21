@@ -218,9 +218,9 @@ impl ChessGame {
         }
     }
 
-    pub fn state(&self) -> &GameState {
+    pub fn state(&self) -> GameState {
         // SAFETY: There should always be a valid state
-        unsafe { self.state.last().unwrap_unchecked() }
+        unsafe { *self.state.last().unwrap_unchecked() }
     }
 
     pub fn push_history(&mut self, _move: Move) {
@@ -472,7 +472,7 @@ impl ChessGame {
     }
 
     pub fn push(&mut self, _move: Move) {
-        let mut state = *self.state();
+        let mut state = self.state();
         state.set_en_passant(8);
         match _move {
             Move::Normal {
