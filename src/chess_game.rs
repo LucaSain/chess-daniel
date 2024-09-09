@@ -810,8 +810,7 @@ impl ChessGame {
         s
     }
 }
-
-impl std::fmt::Debug for ChessGame {
+impl std::fmt::Display for ChessGame {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         writeln!(f)?;
 

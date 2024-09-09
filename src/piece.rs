@@ -381,7 +381,7 @@ impl Piece {
     }
 }
 
-impl std::fmt::Debug for Piece {
+impl std::fmt::Display for Piece {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{}", self.as_char())
     }

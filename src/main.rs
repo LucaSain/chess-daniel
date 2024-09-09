@@ -46,7 +46,7 @@ fn main() {
             while let Some(move_str) = &args.next() {
                 let _move = Move::from_uci_notation(move_str, &game).unwrap();
                 game.push(_move);
-                dbg!(game.clone());
+                println!("{}", &game);
             }
 
             let mut moves = ArrayVec::new();
