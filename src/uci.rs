@@ -66,8 +66,9 @@ pub fn uci_talk() {
                                 // TODO: I think it's possible to also get moves
                                 // starting from this position
                                 // i.e. position fen <fen> moves <moves>
-                                // if let Ok(fen_game) =
-                                match ChessGame::new(terms.remainder().unwrap_or_default()) {
+                                let last_terms: Vec<_> = terms.clone().collect();
+                                let fen: String = last_terms.join(" ");
+                                match ChessGame::new(&fen) {
                                     Ok(fen_game) => {
                                         game = fen_game;
                                     }
