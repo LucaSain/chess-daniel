@@ -1,4 +1,4 @@
-use crate::{chess_game::ChessGame, move_struct::Move, search::get_best_move};
+use crate::{chess_game::ChessGame, move_struct::Move, search::get_best_move_entry};
 
 use std::{sync::atomic::AtomicBool, time::Instant};
 
@@ -24,7 +24,7 @@ pub fn run_benchmark(depth: u8, steps: u8) {
 
     'outer: loop {
         let now = Instant::now();
-        get_best_move(game.clone(), &atomic_false, depth).unwrap();
+        get_best_move_entry(game.clone(), &atomic_false, depth).unwrap();
         durations.push(now.elapsed());
 
         for _ in 0..steps {

@@ -34,6 +34,15 @@ pub enum Move {
 }
 
 impl Move {
+    pub fn is_tactical_move(&self) -> bool {
+        match self {
+            Self::Normal { captured_piece, .. } => captured_piece.is_some(),
+            Self::Promotion { .. } => true,
+            Self::EnPassant { .. } => true,
+            _ => false,
+        }
+    }
+
     pub fn uci_notation(&self) -> String {
         let mut s = String::new();
         match self {

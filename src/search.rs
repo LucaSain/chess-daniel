@@ -46,6 +46,64 @@ fn simple_move_compare(a: &Move, b: &Move) -> Ordering {
     }
 }
 
+fn quiescence_search(
+    game: &mut ChessGame,
+    mut alpha: Score,
+    beta: Score,
+    remaining_depth: u8,
+) -> Score {
+    let current_score = game.score * (game.current_player as Score);
+    // return current_score;
+    alpha = alpha.max(current_score);
+
+    if remaining_depth == 0 || alpha >= beta {
+        return alpha;
+    }
+
+    let player = game.current_player;
+    let mut moves = ArrayVec::new();
+    game.get_moves(&mut moves, false);
+
+    if moves.is_empty() {
+        if !game.is_targeted(game.get_king_position(player), player) {
+            return 0;
+        } else {
+            // The earlier the mate the worse the score for the losing player
+            return Score::MIN + 100 + game.len() as Score;
+        }
+    } else if moves.len() == 1 {
+        // If there is only one move available push it and don't decrease depth
+        let _move = moves[0];
+        game.push(_move);
+        let score = -quiescence_search(game, -beta, -alpha, remaining_depth - 1);
+        game.pop(_move);
+
+        return score;
+    }
+
+    for _move in &moves {
+        let _move = *_move;
+
+        if !_move.is_tactical_move() {
+            continue;
+        }
+
+        game.push(_move);
+        let score = -quiescence_search(game, -beta, -alpha, remaining_depth - 1);
+        game.pop(_move);
+
+        if score > alpha {
+            alpha = score;
+        }
+
+        if alpha >= beta {
+            break;
+        }
+    }
+
+    alpha
+}
+
 /// This function exists in order to improve the performance of the search algorithm
 /// It's the same as get_best_move_score but with a depth always equal to 1
 ///
@@ -69,16 +127,20 @@ fn get_best_move_score_depth_1(game: &mut ChessGame, mut alpha: Score, beta: Sco
         game.push(_move);
         let score = -get_best_move_score_depth_1(game, -beta, -alpha);
         game.pop(_move);
+
         return score;
     }
 
     for _move in &moves {
         let _move = *_move;
         game.push(_move);
-        let score = -game.score * (game.current_player as Score);
+        let score = -quiescence_search(game, -beta, -alpha, 3);
         game.pop(_move);
 
-        alpha = alpha.max(score);
+        if score > alpha {
+            alpha = score;
+        }
+
         if alpha >= beta {
             break;
         }
@@ -93,18 +155,22 @@ fn get_best_move_score_depth_1(game: &mut ChessGame, mut alpha: Score, beta: Sco
 fn get_best_move_score(
     game: &mut ChessGame,
     should_stop: &AtomicBool,
-    depth: u8,
+    // Moves left to search
+    remaining_depth: u8,
+    // Moves made since root of the search tree
+    real_depth: u8,
     mut alpha: Score,
     beta: Score,
+    killer_moves: &mut [Option<Move>],
 ) -> Option<Score> {
     if should_stop.load(atomic::Ordering::Relaxed) {
         // Halt the search early
         return None;
     }
 
-    if depth == 1 {
+    if remaining_depth == 1 {
         return Some(get_best_move_score_depth_1(game, alpha, beta));
-    } else if depth == 0 {
+    } else if remaining_depth == 0 {
         return Some(game.score * (game.current_player as Score));
     }
 
@@ -123,31 +189,102 @@ fn get_best_move_score(
         // If there is only one move available push it and don't decrease depth
         let _move = moves[0];
         game.push(_move);
-        let score = -get_best_move_score(game, should_stop, depth, -beta, -alpha)?;
+        let score = -get_best_move_score(
+            game,
+            should_stop,
+            remaining_depth,
+            real_depth + 1,
+            -beta,
+            -alpha,
+            killer_moves,
+        )?;
         game.pop(_move);
+
         return Some(score);
     }
 
+    // Before sorting test killer move (and remove it from the list)
+
+    if let Some(killer_move) = killer_moves[real_depth as usize] {
+        let mut killer_move_index = None;
+        for (index, _move) in moves.iter().enumerate() {
+            if killer_move == *_move {
+                killer_move_index = Some(index);
+                break;
+            }
+        }
+
+        if let Some(index) = killer_move_index {
+            let _move = moves[index];
+            moves.swap_pop(index);
+
+            game.push(killer_move);
+
+            let score = -get_best_move_score(
+                game,
+                should_stop,
+                remaining_depth - 1,
+                real_depth + 1,
+                -beta,
+                -alpha,
+                killer_moves,
+            )?;
+
+            game.pop(killer_move);
+
+            if score > alpha {
+                alpha = score;
+            }
+
+            if alpha >= beta {
+                return Some(alpha);
+            }
+        }
+    }
+
     // We want to sort the moves best on the most likely ones to be good
-    if depth >= 5 {
+    if remaining_depth >= 5 {
         moves.sort_by_cached_key(|a| {
             game.push(*a);
-            let score = get_best_move_score(game, should_stop, depth - 5, -beta, -alpha);
+            let score = get_best_move_score(
+                game,
+                should_stop,
+                remaining_depth - 5,
+                real_depth + 1,
+                -beta,
+                -alpha,
+                killer_moves,
+            );
             game.pop(*a);
             score
         });
-    } else if depth >= 2 {
+    } else if remaining_depth >= 2 {
         moves.sort_unstable_by(simple_move_compare);
     }
 
     for _move in &moves {
         let _move = *_move;
+
         game.push(_move);
-        let score = -get_best_move_score(game, should_stop, depth - 1, -beta, -alpha)?;
+
+        let score = -get_best_move_score(
+            game,
+            should_stop,
+            remaining_depth - 1,
+            real_depth + 1,
+            -beta,
+            -alpha,
+            killer_moves,
+        )?;
+
         game.pop(_move);
 
-        alpha = alpha.max(score);
+        if score > alpha {
+            alpha = score;
+        }
+
         if alpha >= beta {
+            killer_moves[real_depth as usize] = Some(_move);
             break;
         }
     }
@@ -158,7 +295,7 @@ fn get_best_move_score(
 /// This function is the entry point for the search algorithm
 /// It returns the best move, the score of the best move
 /// and a flag indicating if there is only one move available
-pub fn get_best_move(
+pub fn get_best_move_entry(
     mut game: ChessGame,
     should_stop: &AtomicBool,
     depth: u8,
@@ -171,6 +308,7 @@ pub fn get_best_move(
         return Some((moves.first().copied(), 0, true));
     }
 
+    let mut killer_moves = [None; 64];
     let mut best_move = None;
     let mut best_score = -Score::MAX;
 
@@ -181,9 +319,12 @@ pub fn get_best_move(
             &mut game,
             should_stop,
             depth - 1,
+            1,
             Score::MIN + 1,
             -best_score,
+            &mut killer_moves,
         )?;
+
         game.pop(_move);
         if score > best_score {
             best_score = score;
@@ -211,7 +352,7 @@ pub fn get_best_move_in_time(game: &ChessGame, duration: Duration) -> Option<Mov
 
     for depth in 5.. {
         let Some((best_move, best_score, is_only_move)) =
-            get_best_move(game.clone(), should_stop.as_ref(), depth)
+            get_best_move_entry(game.clone(), should_stop.as_ref(), depth)
         else {
             return found_move;
         };

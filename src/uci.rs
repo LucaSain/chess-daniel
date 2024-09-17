@@ -2,16 +2,14 @@ use std::{io::stdin, time::Duration};
 
 use arrayvec::ArrayVec;
 
-use crate::{chess_game::ChessGame, move_struct::Move, search::get_best_move_in_time};
+use crate::{
+    chess_game::{ChessGame, Players},
+    move_struct::Move,
+    search::get_best_move_in_time,
+};
 
 pub fn uci_talk() {
     let mut game = ChessGame::default();
-    let time_per_move = Duration::from_millis(
-        std::env::var("CHESS_TIME_PER_MOVE")
-            .unwrap_or("5000".to_string())
-            .parse()
-            .unwrap_or(5000),
-    );
 
     // Source: https://gist.github.com/DOBRO/2592c6dad754ba67e6dcaec8c90165bf
     'main_loop: for line in stdin().lines() {
@@ -85,7 +83,52 @@ pub fn uci_talk() {
                     }
                 }
                 "go" => {
-                    if let Some(best_move) = get_best_move_in_time(&game, time_per_move) {
+                    let mut wtime: Option<u64> = None;
+                    let mut btime: Option<u64> = None;
+                    let mut winc: Option<u64> = None;
+                    let mut binc: Option<u64> = None;
+
+                    while let Some(term) = terms.next() {
+                        match term {
+                            "wtime" => wtime = terms.next().and_then(|s| s.parse().ok()),
+                            "btime" => btime = terms.next().and_then(|s| s.parse().ok()),
+                            "winc" => winc = terms.next().and_then(|s| s.parse().ok()),
+                            "binc" => binc = terms.next().and_then(|s| s.parse().ok()),
+                            _ => continue,
+                        }
+                    }
+
+                    const FRACTION_OF_TOTAL_TIME: f64 = 0.02;
+                    let mut time = None;
+
+                    if wtime.is_some() && btime.is_some() && winc.is_some() && binc.is_some() {
+                        let wtime = wtime.unwrap();
+                        let btime = btime.unwrap();
+                        let winc = winc.unwrap();
+                        let binc = binc.unwrap();
+
+                        let white_time = (wtime as f64 * FRACTION_OF_TOTAL_TIME) as u64 + winc;
+                        let black_time = (btime as f64 * FRACTION_OF_TOTAL_TIME) as u64 + binc;
+
+                        time = if game.current_player == Players::White {
+                            Some(Duration::from_millis(white_time))
+                        } else {
+                            Some(Duration::from_millis(black_time))
+                        };
+                    }
+
+                    if let Some(env_time) = std::env::var("CHESS_TIME_PER_MOVE")
+                        .ok()
+                        .and_then(|s| s.parse::<u64>().ok())
+                    {
+                        time = Some(Duration::from_millis(env_time));
+                    }
+
+                    println!("info time {:?}", time);
+
+                    if let Some(best_move) =
+                        get_best_move_in_time(&game, time.unwrap_or(Duration::from_secs(2)))
+                    {
                         println!("bestmove {}", best_move.uci_notation());
                         game.push_history(best_move);
                     }
