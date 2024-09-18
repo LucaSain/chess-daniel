@@ -75,7 +75,7 @@ fn quiescence_search(
         // If there is only one move available push it and don't decrease depth
         let _move = moves[0];
         game.push(_move);
-        let score = -quiescence_search(game, -beta, -alpha, remaining_depth - 1);
+        let score = -quiescence_search(game, -beta, -alpha, remaining_depth);
         game.pop(_move);
 
         return score;
@@ -312,6 +312,20 @@ pub fn get_best_move_entry(
     let mut best_move = None;
     let mut best_score = -Score::MAX;
 
+    // Prevent threefold repetition
+    if game.move_stack.len() >= 5
+        && game.move_stack[game.move_stack.len() - 1] == game.move_stack[game.move_stack.len() - 5]
+    {
+        let repetition_move = game.move_stack[game.move_stack.len() - 4];
+
+        for (index, _move) in moves.iter().enumerate() {
+            if repetition_move == *_move {
+                moves.swap_remove(index);
+                break;
+            }
+        }
+    }
+
     for _move in moves {
         game.push(_move);
         // Initially alpha == beta
@@ -363,7 +377,7 @@ pub fn get_best_move_in_time(game: &ChessGame, duration: Duration) -> Option<Mov
         println!("info score cp {}", best_score);
 
         // If mate can be forced, or there is only a single move available, stop searching
-        if is_only_move || best_score > Score::MAX - 1000 {
+        if is_only_move || best_score > Score::MAX - 1000 || best_score < Score::MIN + 1000 {
             return found_move;
         }
     }

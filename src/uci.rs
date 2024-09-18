@@ -107,8 +107,11 @@ pub fn uci_talk() {
                         let winc = winc.unwrap();
                         let binc = binc.unwrap();
 
-                        let white_time = (wtime as f64 * FRACTION_OF_TOTAL_TIME) as u64 + winc;
-                        let black_time = (btime as f64 * FRACTION_OF_TOTAL_TIME) as u64 + binc;
+                        // We subtract 100ms from the time to make sure we don't run out of time
+                        let white_time =
+                            (wtime as f64 * FRACTION_OF_TOTAL_TIME) as u64 + winc - 100;
+                        let black_time =
+                            (btime as f64 * FRACTION_OF_TOTAL_TIME) as u64 + binc - 100;
 
                         time = if game.current_player == Players::White {
                             Some(Duration::from_millis(white_time))
