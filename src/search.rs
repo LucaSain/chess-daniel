@@ -46,39 +46,28 @@ fn simple_move_compare(a: &Move, b: &Move) -> Ordering {
     }
 }
 
-fn quiescence_search(
-    game: &mut ChessGame,
-    mut alpha: Score,
-    beta: Score,
-    remaining_depth: u8,
-) -> Score {
+fn quiescence_search(game: &mut ChessGame, mut alpha: Score, beta: Score) -> Score {
     let current_score = game.score * (game.current_player as Score);
-    // return current_score;
     alpha = alpha.max(current_score);
 
-    if remaining_depth == 0 || alpha >= beta {
+    if alpha >= beta {
         return alpha;
     }
 
     let player = game.current_player;
     let mut moves = ArrayVec::new();
+
+    // It is possible for the game to be a stalemate, but be recognized as a checkmate
+    // Because we don't validate the king's moves there due to performance reasons
     game.get_moves(&mut moves, false);
 
     if moves.is_empty() {
-        if !game.is_targeted(game.get_king_position(player), player) {
+        if game.king_exists(player) && !game.is_targeted(game.get_king_position(player), player) {
             return 0;
         } else {
             // The earlier the mate the worse the score for the losing player
             return Score::MIN + 100 + game.len() as Score;
         }
-    } else if moves.len() == 1 {
-        // If there is only one move available push it and don't decrease depth
-        let _move = moves[0];
-        game.push(_move);
-        let score = -quiescence_search(game, -beta, -alpha, remaining_depth);
-        game.pop(_move);
-
-        return score;
     }
 
     for _move in &moves {
@@ -89,7 +78,7 @@ fn quiescence_search(
         }
 
         game.push(_move);
-        let score = -quiescence_search(game, -beta, -alpha, remaining_depth - 1);
+        let score = -quiescence_search(game, -beta, -alpha);
         game.pop(_move);
 
         if score > alpha {
@@ -134,7 +123,7 @@ fn get_best_move_score_depth_1(game: &mut ChessGame, mut alpha: Score, beta: Sco
     for _move in &moves {
         let _move = *_move;
         game.push(_move);
-        let score = -quiescence_search(game, -beta, -alpha, 3);
+        let score = -quiescence_search(game, -beta, -alpha);
         game.pop(_move);
 
         if score > alpha {
@@ -308,7 +297,7 @@ pub fn get_best_move_entry(
         return Some((moves.first().copied(), 0, true));
     }
 
-    let mut killer_moves = [None; 64];
+    let mut killer_moves = [None; 32];
     let mut best_move = None;
     let mut best_score = -Score::MAX;
 

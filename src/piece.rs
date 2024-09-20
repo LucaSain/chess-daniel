@@ -40,6 +40,17 @@ impl Piece {
         piece_score * self.owner as Score
     }
 
+    pub fn material_value(self) -> u8 {
+        match self.piece_type {
+            PieceTypes::Pawn => 1,
+            PieceTypes::Bishop => 3,
+            PieceTypes::Knight => 3,
+            PieceTypes::Rook => 5,
+            PieceTypes::Queen => 9,
+            PieceTypes::King => 100,
+        }
+    }
+
     pub fn get_moves(self, mut push: impl FnMut(Move), game: &ChessGame, pos: Position) {
         macro_rules! search_deltas {
             ( $( $deltas:expr ),* ) => { $ (

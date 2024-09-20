@@ -601,13 +601,16 @@ impl ChessGame {
         }
     }
 
+    pub fn king_exists(&self, player: Players) -> bool {
+        self.get_position(self.get_king_position(player))
+            .is_some_and(|piece| piece.piece_type == PieceTypes::King)
+    }
+
     /// `moves` will be cleared by this function to be sure it has room for all moves
     pub fn get_moves(&mut self, moves: &mut ArrayVec<Move, 256>, verify_king: bool) {
         moves.clear();
 
-        let king_position = self.get_king_position(self.current_player);
-        let king_place = self.get_position(king_position);
-        if !king_place.is_some_and(|piece| piece.piece_type == PieceTypes::King) {
+        if !self.king_exists(self.current_player) {
             // no available moves;
             return;
         }
@@ -635,6 +638,7 @@ impl ChessGame {
         // We remove invalid moves by overwriting them with the following valid moves
         if verify_king {
             let player = self.current_player;
+            let king_position = self.get_king_position(player);
             let is_king_targeted = self.is_targeted(king_position, player);
             let mut keep_index = 0;
             for index in 0..moves.len() {
