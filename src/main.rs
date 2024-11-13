@@ -27,6 +27,7 @@ where
 }
 
 fn main() {
+    println!();
     let mut args = std::env::args();
     args.next();
 
